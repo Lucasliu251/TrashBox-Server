@@ -1,0 +1,4 @@
+*.log
+*.env
+/aspnet_client
+/_pycache_
