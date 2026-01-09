@@ -2,7 +2,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from routers import users, stats, friends # 导入子模块
+from routers import users, posts, stats, friends # 导入子模块
 
 app = FastAPI(title="TrashBox API")
 
@@ -16,6 +16,7 @@ app.add_middleware(
 
 # 挂载子路由
 app.include_router(users.router)
+app.include_router(posts.router)
 # app.include_router(stats.router)
 # app.include_router(friends.router)
 

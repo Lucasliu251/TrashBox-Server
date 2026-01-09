@@ -66,3 +66,25 @@ async def onboarding(data: UserOnboarding, db = Depends(get_db_connection)):
     except Exception as e:
         print(f"DB Error: {e}")
         raise HTTPException(status_code=500, detail="Database operation failed")
+
+# 获取用户个人资料
+@router.get("/me")
+async def get_my_profile(openid: str, db = Depends(get_db_connection)):
+    # 注意：实际生产中 openid 应该从 Header 的 Token 解析，现在开发阶段我们先通过参数传
+    try:
+        with db.cursor() as cursor:
+            # 查出用户的 steam_id, auth_code 等信息
+            sql = "SELECT uuid, steam_id, auth_code, match_code, created_at FROM users WHERE uuid = %s"
+            cursor.execute(sql, (openid,))
+            user = cursor.fetchone()
+            
+        if not user:
+            return {"code": 404, "message": "User not found"}
+            
+        return {
+            "code": 200, 
+            "data": user
+        }
+    except Exception as e:
+        print(f"Error fetching profile: {e}")
+        return {"code": 500, "message": str(e)}
