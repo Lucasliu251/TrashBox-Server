@@ -2,9 +2,10 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from routers import users, posts, stats, friends # 导入子模块
+from fastapi.staticfiles import StaticFiles
+from routers import users, posts, stats, friends, daily_rank, player_stats # 导入子模块
 
-app = FastAPI(title="TrashBox API")
+app = FastAPI(title="TrashBox API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,8 +18,13 @@ app.add_middleware(
 # 挂载子路由
 app.include_router(users.router)
 app.include_router(posts.router)
+app.include_router(daily_rank.router)
+app.include_router(player_stats.router)
 # app.include_router(stats.router)
 # app.include_router(friends.router)
+
+# 静态文件服务
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 
 # 全局异常捕获

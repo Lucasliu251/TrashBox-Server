@@ -2,3 +2,4 @@
 *.env
 /aspnet_client
 /_pycache_
+/assets
