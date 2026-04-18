@@ -40,9 +40,9 @@ def calculate_trashbox_rating(kills, deaths, dmg, mvps, rounds):
 
     # --- 4. 加权求和 (Weights) ---
     # 权重分配策略：
-    # 击杀 (Kill): 30% - 最直接的贡献
-    # 伤害 (Dmg):  30% - 极其重要，特别是对于那些打残血但没拿到头的人
-    # 生存 (Surv): 20% - 活着才有输出，防止送人头
+    # 击杀 (Kill): 35% - 最直接的贡献
+    # 伤害 (Dmg):  23% - 极其重要，特别是对于那些打残血但没拿到头的人
+    # 生存 (Surv): 22% - 活着才有输出，防止送人头
     # MVP (Imp):   20% - 奖励关键局胜者
     
     raw_rating = (
