@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import List
 from pydantic import BaseModel
 from database import get_db_connection
+from utils.rating_algo import calculate_trashbox_rating
 
 router = APIRouter()
 
@@ -15,12 +16,15 @@ class RankItem(BaseModel):
     avatar: str | None = None
     steam_id: str
 
+    daily_Rating: float
     daily_kills: int
     daily_deaths: int
     daily_damage: int
    
     daily_mvp: int
     daily_headshots: int
+    daily_rounds: int
+    daily_wins: int
 
     daily_kd: float
     daily_adr: float
@@ -43,7 +47,7 @@ def get_daily_ranking(
 
     # 2. 一次性查出两天的数据
     query = text("""
-        SELECT steam_id, nickname, record_date, total_kills, total_deaths, total_mvps, total_HS, total_damage, total_rounds_played
+        SELECT steam_id, nickname, record_date, total_kills, total_deaths, total_mvps, total_HS, total_damage, total_rounds_played, total_wins
         FROM daily 
         WHERE record_date IN (:t_date, :p_date)
     """)
@@ -89,6 +93,7 @@ def get_daily_ranking(
         prev_hs = prev.total_HS if prev else 0
         prev_dmg = prev.total_damage if prev else 0
         prev_rounds = prev.total_rounds_played if prev else 0
+        prev_wins = prev.total_wins if prev else 0
 
         d_kills = current.total_kills - prev_kills
         d_deaths = current.total_deaths - prev_deaths
@@ -96,10 +101,13 @@ def get_daily_ranking(
         d_hs = current.total_HS - prev_hs
         d_dmg = current.total_damage - prev_dmg
         d_rounds = current.total_rounds_played - prev_rounds
+        d_wins = current.total_wins - prev_wins
 
         d_kd = round(d_kills / d_deaths, 2) if d_deaths > 0 else d_kills
         d_HSR = round((d_hs / d_kills) * 100, 2) if d_kills > 0 else 0.0
         d_ADR = round(d_dmg / d_rounds, 2) if d_rounds > 0 else 0.0
+
+        Rating = calculate_trashbox_rating(d_kills, d_deaths, d_dmg, d_mvp, d_rounds)
 
         # 确定昵称和头像 
         # 获取该 ID 对应的注册信息 (可能为空)
@@ -113,10 +121,14 @@ def get_daily_ranking(
         reg_avatar = reg_info.get("avatar")
         final_avatar = reg_avatar if reg_avatar else None
 
+        if d_rounds < 8:
+            continue
+
         rank_list.append({
             "nickname": final_nickname, 
             "avatar": final_avatar,
             "steam_id": steam_id,
+            "daily_Rating": Rating,
             "daily_kills": d_kills,
             "daily_deaths": d_deaths,
             "daily_kd": d_kd,
@@ -125,10 +137,12 @@ def get_daily_ranking(
             "daily_headshots": d_hs,
             "daily_damage": d_dmg,
             "daily_mvp": d_mvp,
+            "daily_rounds": d_rounds,
+            "daily_wins": d_wins
         })
 
     # 6. 排序
-    rank_list.sort(key=lambda x: x['daily_kd'], reverse=True)
+    rank_list.sort(key=lambda x: x['daily_Rating'], reverse=True)
     
     # 7. 注入排名
     for i, item in enumerate(rank_list):

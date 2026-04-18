@@ -1,13 +1,15 @@
 # routers/users.py
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query
 from sqlalchemy import text
 from database import get_db_connection
 from pydantic import BaseModel
 from config import settings
 from typing import Optional
 import os
+import re
 import uuid
 import shutil
+import requests
 import httpx
 
 # 创建路由器
@@ -82,6 +84,18 @@ async def login(data: UserLogin, connection=Depends(get_db_connection)):
 
 @router.post("/onboarding")
 async def onboarding(data: UserOnboarding, connection = Depends(get_db_connection)):
+    #0. 智能解析 Steam ID
+    try:
+        # 将用户输入的各种乱七八糟的格式，清洗为标准的 real_steam_id
+        real_steam_id = await resolve_steam_id_task(data.steamId)
+        print(f"SteamID Resolved: {data.steamId} -> {real_steam_id}")
+    except ValueError as ve:
+        # 解析失败，返回 400 给前端提示用户
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(f"Resolve Error: {e}")
+        raise HTTPException(status_code=400, detail="无法识别 Steam ID，请尝试直接输入数字 ID")
+    
     # 1. 向微信服务器发起请求，换取 OpenID
     async with httpx.AsyncClient() as client:
         wx_url = "https://api.weixin.qq.com/sns/jscode2session"
@@ -102,7 +116,7 @@ async def onboarding(data: UserOnboarding, connection = Depends(get_db_connectio
     openid = wx_res["openid"]
     # session_key = wx_res["session_key"] # 如果以后要解密手机号需要这个，现在暂时不用
 
-    print(f"User Login: OpenID={openid}, SteamID={data.steamId}")
+    print(f"User Login: OpenID={openid}, SteamID={real_steam_id}")
 
     # 2. 存入数据库
     try:
@@ -120,7 +134,7 @@ async def onboarding(data: UserOnboarding, connection = Depends(get_db_connectio
         # [修改] execute 直接传参数字典
         connection.execute(sql, {
             "uuid": openid,
-            "steam_id": data.steamId,
+            "steam_id": real_steam_id,
             "auth_code": data.authCode,
             "match_code": data.matchCode
         })
@@ -131,7 +145,7 @@ async def onboarding(data: UserOnboarding, connection = Depends(get_db_connectio
         return {
             "code": 200, 
             "message": "Binding Success", 
-            "data": {"uuid": openid} 
+            "data": {"uuid": openid, "steam_id": real_steam_id} 
         }
 
     except Exception as e:
@@ -143,7 +157,7 @@ async def onboarding(data: UserOnboarding, connection = Depends(get_db_connectio
 async def get_my_profile(openid: str, connection = Depends(get_db_connection)):
     # 注意：实际生产中 openid 应该从 Header 的 Token 解析，现在开发阶段我们先通过参数传
     try:
-        sql = text("SELECT uuid, steam_id, auth_code, match_code, avatar, nickname, created_at FROM users WHERE uuid = :uuid")
+        sql = text("SELECT uuid, steam_id, auth_code, match_code, avatar, nickname, canEdit, created_at FROM users WHERE uuid = :uuid")
         
         result = connection.execute(sql, {"uuid": openid}).fetchone()
             
@@ -243,3 +257,118 @@ async def upload_avatar(file: UploadFile = File(...)):
     except Exception as e:
         print(f"Upload Error: {e}")
         raise HTTPException(status_code=500, detail="File upload failed")
+    
+
+@router.get("/search")
+def search_users(
+    q: str = Query(..., min_length=1, description="搜索关键词：昵称或SteamID"),
+    connection = Depends(get_db_connection)
+):
+    keyword = f"%{q}%" # 模糊匹配模式
+    
+    # 1. 搜索 Users 表 (已注册用户)
+    # 优先匹配 steam_id 精确查找，或者 nickname 模糊查找
+    sql_users = text("""
+        SELECT steam_id, nickname, avatar 
+        FROM users 
+        WHERE steam_id = :exact_id OR nickname LIKE :like_name
+        LIMIT 5
+    """)
+    
+    # 2. 搜索 Daily 表 (未注册但在榜单上的历史用户)
+    # 使用 DISTINCT 去重，因为 daily 表有很多天的数据
+    sql_daily = text("""
+        SELECT DISTINCT steam_id, nickname 
+        FROM daily 
+        WHERE steam_id = :exact_id OR nickname LIKE :like_name
+        LIMIT 5
+    """)
+    
+    params = {"exact_id": q, "like_name": keyword}
+    
+    rows_users = connection.execute(sql_users, params).fetchall()
+    rows_daily = connection.execute(sql_daily, params).fetchall()
+    
+    # 3. 数据合并与去重 (以 SteamID 为键)
+    results = {}
+    
+    # 先放入注册用户 (优先级高)
+    for row in rows_users:
+        results[row.steam_id] = {
+            "steam_id": row.steam_id,
+            "nickname": row.nickname,
+            "avatar": row.avatar,
+            "source": "registered"
+        }
+        
+    # 再放入历史用户 (如果已存在则跳过，保证优先显示注册信息)
+    for row in rows_daily:
+        if row.steam_id not in results:
+            results[row.steam_id] = {
+                "steam_id": row.steam_id,
+                "nickname": row.nickname,
+                "avatar": None, # 历史用户没有自定义头像
+                "source": "history"
+            }
+            
+    # 转为列表返回
+    return {"code": 200, "data": list(results.values())}
+
+
+
+
+# 解析 Steam ID 的辅助函数
+async def resolve_steam_id_task(input_str: str) -> str:
+    input_str = input_str.strip()
+    
+    # 情况 A: 用户直接输入了 17 位纯数字 ID (SteamID64)
+    # 这是最理想的情况，直接返回
+    if input_str.isdigit() and len(input_str) == 17:
+        return input_str
+        
+    # 情况 B: 用户输入了包含 profiles 的链接
+    # 例如: https://steamcommunity.com/profiles/76561198xxxxxxxxx/
+    # 正则提取 /profiles/ 后面的数字
+    profile_pattern = r"steamcommunity\.com/profiles/(\d{17})"
+    match = re.search(profile_pattern, input_str)
+    if match:
+        return match.group(1)
+        
+    # 情况 C: 用户输入了自定义 URL (Vanity URL) 或者 纯自定义名
+    # 例如: https://steamcommunity.com/id/lucas_cs2/ 或 lucas_cs2
+    vanity_name = None
+    
+    # 尝试从链接提取名字
+    vanity_pattern = r"steamcommunity\.com/id/([^/]+)"
+    match_vanity = re.search(vanity_pattern, input_str)
+    
+    if match_vanity:
+        vanity_name = match_vanity.group(1)
+    elif not input_str.isdigit() and "/" not in input_str: 
+        # 假设用户只输了自定义id的名字 (如 "lucas_cs2")，没有输链接
+        vanity_name = input_str
+        
+    if vanity_name:
+        # 调用 Steam 官方 API 将自定义名字转为 ID64
+        url = "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/"
+        params = {
+            "key": settings.STEAM_API_KEY, # 必填：你的 Steam API Key
+            "vanityurl": vanity_name
+        }
+        
+        async with httpx.AsyncClient() as client:
+            try:
+                res = await client.get(url, params=params, timeout=10.0)
+                data = res.json()
+                
+                if data.get('response', {}).get('success') == 1:
+                    return data['response']['steamid']
+                else:
+                    raise ValueError("无法解析该自定义ID，请检查拼写")
+            except Exception as e:
+                print(f"Steam API Error: {e}")
+                # 如果 Steam API 挂了或者超时，抛出异常让用户直接输 ID
+                raise ValueError("连接 Steam 服务器失败，请直接输入 17 位数字 ID")
+
+    # 如果以上都不匹配
+    raise ValueError("无效的 Steam ID 格式，请复制个人主页链接或输入 17 位 ID")

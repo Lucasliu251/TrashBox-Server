@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrashBox API 开发者文档</title>
+    <style>
+        :root {
+            --primary-color: #de9b35; /* CS 金色 */
+            --bg-color: #f4f5f7;
+            --sidebar-bg: #1e1e1e;
+            --text-main: #333;
+            --text-light: #666;
+            --code-bg: #2b2d31;
+            --method-get: #61affe;
+            --method-post: #49cc90;
+            --method-put: #fca130;
+            --method-delete: #f93e3e;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+        }
+
+        /* 左侧导航栏 */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            color: #fff;
+            padding: 20px 0;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar h1 {
+            font-size: 24px;
+            padding: 0 20px;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+        }
+
+        .nav-group {
+            margin-bottom: 20px;
+        }
+
+        .nav-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #888;
+            padding: 0 20px;
+            margin-bottom: 10px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 10px 20px;
+            color: #ccc;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* 右侧主内容区 */
+        .content {
+            flex: 1;
+            padding: 40px 60px;
+            overflow-y: auto;
+            background: #fff;
+        }
+
+        .endpoint-block {
+            margin-bottom: 60px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 28px;
+            margin-top: 0;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        h3 {
+            font-size: 20px;
+            margin-top: 30px;
+        }
+
+        /* 请求方法徽章 */
+        .method {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            color: #fff;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 10px;
+            text-transform: uppercase;
+        }
+        .method.get { background-color: var(--method-get); }
+        .method.post { background-color: var(--method-post); }
+        .method.put { background-color: var(--method-put); }
+        .method.delete { background-color: var(--method-delete); }
+
+        .url {
+            font-family: monospace;
+            font-size: 16px;
+            background: #f8f9fa;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #e1e4e8;
+        }
+
+        /* 表格样式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        /* 代码块样式 */
+        pre {
+            background-color: var(--code-bg);
+            color: #a9b7c6;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .string { color: #6a8759; }
+        .number { color: #6897bb; }
+        .boolean { color: #cc7832; }
+        .key { color: #9876aa; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h1>TrashBox API</h1>
+        
+        <div class="nav-group">
+            <div class="nav-title">概览</div>
+            <a href="#intro" class="nav-link">基础信息</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">用户管理 (Users)</div>
+            <a href="#users-login" class="nav-link">微信快捷登录</a>
+            <a href="#users-onboarding" class="nav-link">新用户注册绑定</a>
+            <a href="#users-me" class="nav-link">获取个人资料</a>
+            <a href="#users-update" class="nav-link">更新用户资料</a>
+            <a href="#users-avatar" class="nav-link">上传用户头像</a>
+            <a href="#users-search" class="nav-link">全局搜索用户</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">玩家战绩 (Players & Stats)</div>
+            <a href="#player-history" class="nav-link">获取玩家历史战绩</a>
+            <a href="#rankings-daily" class="nav-link">获取每日全服排行</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">社区文章 (Posts)</div>
+            <a href="#posts-create" class="nav-link">发布文章</a>
+            <a href="#posts-list" class="nav-link">获取文章列表</a>
+            <a href="#posts-detail" class="nav-link">获取文章详情</a>
+            <a href="#posts-comment" class="nav-link">发表评论</a>
+            <a href="#posts-upload" class="nav-link">上传文章图片</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">消息通知 (Notifications)</div>
+            <a href="#notifications-subscribe" class="nav-link">订阅微信通知</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">辅助与拓展 (Helpers)</div>
+            <a href="#helper-bind" class="nav-link">Steam ID 智能解析</a>
+            <a href="#reaction-submit" class="nav-link">提交反应力测试</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="intro" class="endpoint-block">
+            <h2>基础信息</h2>
+            <p>欢迎使用 TrashBox CS2 数据分析系统 API 接口文档。</p>
+            <ul>
+                <li><strong>基础路径 (Base URL):</strong> <span class="url">https://trashbox.tech/api/v1</span></li>
+                <li><strong>数据交互格式:</strong> <code>application/json</code> (除文件上传外)</li>
+                <li><strong>接口鉴权:</strong> 微信小程序生产环境请在 Header 中携带 Token。</li>
+            </ul>
+        </div>
+
+        <h2>用户管理 (Users)</h2>
+        
+        <div id="users-login" class="endpoint-block">
+            <h3>微信快捷登录</h3>
+            <p>使用微信 wx.login 返回的临时 code 换取 OpenID，并检查用户是否已注册。</p>
+            <p><span class="method post">POST</span> <span class="url">/users/login</span></p>
+            <h4>请求参数 (Body JSON)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>loginCode</code></td><td>String</td><td>是</td><td>微信临时登录凭证 (code)</td></tr>
+            </table>
+        </div>
+
+        <div id="users-onboarding" class="endpoint-block">
+            <h3>新用户注册绑定</h3>
+            <p>新用户绑定 Steam ID，支持自动解析包含乱码/自定义URL的输入内容。</p>
+            <p><span class="method post">POST</span> <span class="url">/users/onboarding</span></p>
+            <h4>请求参数 (Body JSON)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>loginCode</code></td><td>String</td><td>是</td><td>微信临时登录凭证</td></tr>
+                <tr><td><code>steamId</code></td><td>String</td><td>是</td><td>用户输入的 Steam ID 或主页链接</td></tr>
+                <tr><td><code>authCode</code></td><td>String</td><td>是</td><td>完美平台鉴权码</td></tr>
+                <tr><td><code>matchCode</code></td><td>String</td><td>是</td><td>比赛专属特征码</td></tr>
+            </table>
+        </div>
+
+        <div id="users-me" class="endpoint-block">
+            <h3>获取个人资料</h3>
+            <p>获取当前登录用户的详细档案资料。</p>
+            <p><span class="method get">GET</span> <span class="url">/users/me</span></p>
+            <h4>请求参数 (Query)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>openid</code></td><td>String</td><td>是</td><td>用户唯一标识 (开发环境暂以Query传入)</td></tr>
+            </table>
+        </div>
+
+        <div id="users-update" class="endpoint-block">
+            <h3>更新用户资料</h3>
+            <p>用于修改自定义昵称或头像链接。</p>
+            <p><span class="method put">PUT</span> <span class="url">/users/update</span></p>
+            <h4>请求参数 (Body JSON)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>openid</code></td><td>String</td><td>是</td><td>微信用户的唯一标识</td></tr>
+                <tr><td><code>nickname</code></td><td>String</td><td>否</td><td>自定义昵称</td></tr>
+                <tr><td><code>avatar</code></td><td>String</td><td>否</td><td>绑定的 头像URL</td></tr>
+            </table>
+        </div>
+
+        <div id="users-avatar" class="endpoint-block">
+            <h3>上传用户头像</h3>
+            <p>处理小程序端用户自定义头像的上传请求，返回访问URL。</p>
+            <p><span class="method post">POST</span> <span class="url">/users/avatar</span></p>
+            <p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+            <h4>请求参数</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>file</code></td><td>File</td><td>是</td><td>图片文件实体 (JPG/PNG)</td></tr>
+            </table>
+        </div>
+
+        <div id="users-search" class="endpoint-block">
+            <h3>全局搜索用户</h3>
+            <p>通过 Steam ID 精确查找或昵称模糊匹配玩家。优先返回已注册用户信息。</p>
+            <p><span class="method get">GET</span> <span class="url">/users/search</span></p>
+            <h4>请求参数 (Query)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>q</code></td><td>String</td><td>是</td><td>搜索关键词：昵称或SteamID (最少1字符)</td></tr>
+            </table>
+        </div>
+
+
+        <h2>玩家战绩 (Players & Stats)</h2>
+        
+        <div id="player-history" class="endpoint-block">
+            <h3>获取玩家历史战绩与多维数据</h3>
+            <p>获取指定 Steam 账号的近期游戏历史汇总、每日明细、多维数据评价与风格标签。</p>
+            <p><span class="method get">GET</span> <span class="url">/players/{steam_id}/history</span></p>
+            <h4>请求参数</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>steam_id</code></td><td>String</td><td>是</td><td>玩家的 Steam 64位 ID (路径参数)</td></tr>
+                <tr><td><code>days</code></td><td>Integer</td><td>否</td><td>查询过去的天数，默认 30，最大 90 (Query参数)</td></tr>
+            </table>
+            <h4>返回示例 (节选)</h4>
+            <pre><code>{
+  <span class="key">"steam_id"</span>: <span class="string">"76561198xxx"</span>,
+  <span class="key">"nickname"</span>: <span class="string">"Lucas"</span>,
+  <span class="key">"style_tag"</span>: <span class="string">"狠"</span>,
+  <span class="key">"summary"</span>: { <span class="key">"avg_Rating"</span>: <span class="number">1.25</span>, <span class="key">"avg_kd"</span>: <span class="number">1.15</span> },
+  <span class="key">"history"</span>: [ ... ]
+}</code></pre>
+        </div>
+
+        <div id="rankings-daily" class="endpoint-block">
+            <h3>获取每日全服排行榜</h3>
+            <p>获取某一日期的活跃玩家数据排名，离线聚类脚本也依赖此接口。</p>
+            <p><span class="method get">GET</span> <span class="url">/rankings/daily</span></p>
+            <h4>请求参数 (Query)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>date</code></td><td>String</td><td>是</td><td>查询日期，格式 YYYY-MM-DD</td></tr>
+            </table>
+        </div>
+
+
+        <h2>社区文章 (Posts)</h2>
+
+        <div id="posts-create" class="endpoint-block">
+            <h3>发布文章</h3>
+            <p>允许注册用户发布富文本社区文章。</p>
+            <p><span class="method post">POST</span> <span class="url">/posts/</span></p>
+            <h4>请求参数 (Body JSON)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>openid</code></td><td>String</td><td>是</td><td>作者 UUID (OpenID)</td></tr>
+                <tr><td><code>title</code></td><td>String</td><td>是</td><td>文章标题</td></tr>
+                <tr><td><code>content</code></td><td>String</td><td>是</td><td>富文本 HTML 内容</td></tr>
+                <tr><td><code>tag</code></td><td>String</td><td>否</td><td>分类标签 (默认"默认")</td></tr>
+            </table>
+        </div>
+
+        <div id="posts-list" class="endpoint-block">
+            <h3>获取文章列表</h3>
+            <p>首页信息流使用的分页获取文章列表接口，自动提取纯文本摘要与封面图。</p>
+            <p><span class="method get">GET</span> <span class="url">/posts/</span></p>
+            <h4>请求参数 (Query)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>limit</code></td><td>Integer</td><td>否</td><td>单页条数，默认 10</td></tr>
+                <tr><td><code>offset</code></td><td>Integer</td><td>否</td><td>偏移量，默认 0</td></tr>
+            </table>
+        </div>
+
+        <div id="posts-detail" class="endpoint-block">
+            <h3>获取文章详情</h3>
+            <p>拉取文章正文及底部的评论列表，请求成功后文章 views 会自动加1。</p>
+            <p><span class="method get">GET</span> <span class="url">/posts/{post_id}</span></p>
+            <h4>请求参数</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>post_id</code></td><td>Integer</td><td>是</td><td>文章的主键 ID (路径参数)</td></tr>
+            </table>
+        </div>
+
+        <div id="posts-comment" class="endpoint-block">
+            <h3>发表评论</h3>
+            <p>对指定文章发表留言评论。</p>
+            <p><span class="method post">POST</span> <span class="url">/posts/{post_id}/comment</span></p>
+            <h4>请求参数 (Body JSON)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>uuid</code></td><td>String</td><td>是</td><td>评论者 OpenID</td></tr>
+                <tr><td><code>content</code></td><td>String</td><td>是</td><td>评论内容文本</td></tr>
+            </table>
+        </div>
+
+        <div id="posts-upload" class="endpoint-block">
+            <h3>上传文章图片</h3>
+            <p>供富文本编辑器使用，上传图片后返回持久化链接。</p>
+            <p><span class="method post">POST</span> <span class="url">/posts/upload</span></p>
+            <p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+            <h4>请求参数</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>file</code></td><td>File</td><td>是</td><td>图片文件实体 (支持JPG/PNG/GIF/WEBP)</td></tr>
+            </table>
+        </div>
+
+
+        <h2>消息通知 (Notifications)</h2>
+
+        <div id="notifications-subscribe" class="endpoint-block">
+            <h3>订阅微信通知</h3>
+            <p>用户授权后，记录一次性订阅消息发送次数（剩余次数+1）。</p>
+            <p><span class="method post">POST</span> <span class="url">/notifications/subscribe</span></p>
+            <h4>请求参数 (Body JSON)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>openid</code></td><td>String</td><td>是</td><td>用户的 OpenID</td></tr>
+                <tr><td><code>template_id</code></td><td>String</td><td>是</td><td>微信官方分配的模板ID</td></tr>
+            </table>
+        </div>
+
+
+        <h2>辅助与拓展 (Helpers)</h2>
+
+        <div id="helper-bind" class="endpoint-block">
+            <h3>Steam ID 智能解析 (独立辅助方法)</h3>
+            <p>将用户输入的杂乱信息(自定义URL/纯ID/个人主页)归一化为标准的17位 SteamID64。</p>
+            <p><span class="method post">POST</span> <span class="url">/bind</span></p>
+            <h4>请求参数 (Body JSON)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>steam_id_input</code></td><td>String</td><td>是</td><td>用户随意输入的 Steam 凭证信息</td></tr>
+            </table>
+        </div>
+
+        <div id="reaction-submit" class="endpoint-block">
+            <h3>提交反应力测试成绩</h3>
+            <p>记录用户产生的平均真实反应时间（TTK 数据源辅助）。</p>
+            <p><span class="method post">POST</span> <span class="url">/reaction/submit</span></p>
+            <h4>请求参数 (Body JSON)</h4>
+            <table>
+                <tr><th>参数名</th><th>类型</th><th>必填</th><th>描述</th></tr>
+                <tr><td><code>steam_id</code></td><td>String</td><td>是</td><td>玩家的 Steam ID</td></tr>
+                <tr><td><code>average_ms</code></td><td>Integer</td><td>是</td><td>平均反应时间 (毫秒)，如 195</td></tr>
+            </table>
+        </div>
+
+    </div>
+</body>
+</html>

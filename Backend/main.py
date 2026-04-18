@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from routers import users, posts, stats, friends, daily_rank, player_stats # 导入子模块
+from routers import users, posts, daily_rank, player_stats, notifications # 导入子模块
 
 app = FastAPI(title="TrashBox API", version="1.0.0")
 
@@ -20,6 +20,7 @@ app.include_router(users.router)
 app.include_router(posts.router)
 app.include_router(daily_rank.router)
 app.include_router(player_stats.router)
+app.include_router(notifications.router)
 # app.include_router(stats.router)
 # app.include_router(friends.router)
 

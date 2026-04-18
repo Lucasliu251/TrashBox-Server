@@ -28,4 +28,7 @@ class Settings:
     IMG_DOMAIN = "https://trashbox.tech" 
     IMG_URL_PREFIX = "/assets/posts"
 
+    # Steam
+    STEAM_API_KEY = os.getenv("STEAM_API_KEY")
+
 settings = Settings()

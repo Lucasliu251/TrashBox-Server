@@ -5,11 +5,13 @@ from datetime import datetime, timedelta
 from typing import List, Dict
 from pydantic import BaseModel
 from database import get_db_connection
+from utils.rating_algo import calculate_trashbox_rating
 
 router = APIRouter()
 
 class HistoryItem(BaseModel):
     date: str
+    Rating: float
     kills: int
     deaths: int
     kd: float
@@ -25,6 +27,7 @@ class PlayerHistoryResponse(BaseModel):
     steam_id: str
     nickname: str 
     avatar: str | None = None
+    style_tag: str | None = None
     summary: Dict
     history: List[HistoryItem]
 
@@ -38,7 +41,7 @@ def get_player_history(
     start_date = end_date - timedelta(days=days + 1) # 多取一天算增量
 
     query = text("""
-        SELECT record_date, nickname, total_kills, total_deaths, total_mvps, total_HS, total_damage, total_wins, total_rounds_played, total_time_played, total_money_earned
+        SELECT record_date, nickname, total_kills, total_deaths, total_mvps, total_HS, total_damage, total_wins, total_rounds_played, total_time_played, total_money_earned, style_tag
         FROM daily
         WHERE steam_id = :sid AND record_date >= :s_date
         ORDER BY record_date ASC
@@ -49,8 +52,15 @@ def get_player_history(
     user_query = text("SELECT nickname, avatar FROM users WHERE steam_id = :sid")
     user_row = connection.execute(user_query, {"sid": steam_id}).fetchone()
 
-    if not result:
-        raise HTTPException(status_code=404, detail="User not found")
+    # 获取全服平均数据 ---
+    # 查最新的一条记录
+    sql_avg = text("""
+        SELECT avg_kpr, avg_spr, avg_adr, avg_hsr, avg_mpr, avg_wr 
+        FROM server_avg_stats 
+        ORDER BY date DESC 
+        LIMIT 1
+    """)
+    row_avg = connection.execute(sql_avg).fetchone()
     
 
     history_list = []
@@ -71,13 +81,17 @@ def get_player_history(
         d_kd = round(d_kills / d_deaths, 2) if d_deaths > 0 else d_kills
         d_HSR = round((d_HS / d_kills) * 100, 2) if d_kills > 0 else 0
         d_WR = round((d_wins / d_rounds) * 100, 2) if d_rounds > 0 else 0
+        d_Rating = round(calculate_trashbox_rating(d_kills, d_deaths, d_dmg, d_MVP, d_rounds), 2)
 
-
+        # 异常熔断  
+        if d_rounds > 1000:
+                d_rounds = 0
 
         name = curr.nickname if curr.nickname else "Unknown"
 
         history_list.append({
             "date": str(curr.record_date),
+            "Rating": d_Rating,
             "kills": d_kills,
             "deaths": d_deaths,
             "kd": d_kd,
@@ -116,21 +130,41 @@ def get_player_history(
     avg_kd = round(total_k / total_d, 2) if total_d > 0 else 0
     avg_ADR = round(total_dmg / total_rounds, 2) if total_rounds > 0 else 0
     avg_HSR = round((sum(x['headshots'] for x in history_list) / total_k) * 100, 2) if total_k > 0 else 0
+    avg_MPR = round(sum(x['mvp'] for x in history_list) / total_rounds, 3) if total_rounds > 0 else 0
+    avg_KPR = round(total_k / total_rounds, 3) if total_rounds > 0 else 0
+    avg_SPR = round((total_rounds - total_d) / total_rounds, 3) if total_rounds > 0 else 0
+    avg_Rating = round(calculate_trashbox_rating(total_k, total_d, total_dmg, sum(x['mvp'] for x in history_list), total_rounds), 2)
+
+    if row_avg:
+        server_avg = {
+            "kpr": float(row_avg.avg_kpr),
+            "spr": float(row_avg.avg_spr),
+            "adr": float(row_avg.avg_adr),
+            "hsr": float(row_avg.avg_hsr),
+            "mpr": float(row_avg.avg_mpr),
+            "wr":  float(row_avg.avg_wr)
+        }
 
     return {
         "steam_id": steam_id,
         "nickname": final_nickname,
         "avatar": final_avatar,
+        "style_tag": curr.style_tag if curr.style_tag else None,
         "summary": {
+            "avg_Rating": avg_Rating,
             "period_kills": total_k,
             "period_deaths": total_d,
             "period_dmg": total_dmg,
-            "avg_ADR": avg_ADR,
             "avg_kd": avg_kd,
+            "avg_ADR": avg_ADR,
             "avg_WR": avg_WR,
             "avg_HSR": avg_HSR,
+            "avg_MPR": avg_MPR,
+            "avg_KPR": avg_KPR,
+            "avg_SPR": avg_SPR,
             "time_played": curr.total_time_played,
             "money_earned": curr.total_money_earned,
+            "server_avg": server_avg if row_avg else None,
             "days_tracked": len(history_list)
         },
         "history": history_list

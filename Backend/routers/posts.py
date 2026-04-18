@@ -42,6 +42,9 @@ async def create_post(post: PostCreate, connection=Depends(get_db_connection)):
     # 简单校验
     if not post.title or not post.content:
         return {"code": 400, "message": "标题或内容不能为空"}
+    # 校验用户身份
+    if not post.openid:
+        return {"code": 401, "message": "用户未登录或身份无效，无法发布"}
 
     try:
         sql = text("""
