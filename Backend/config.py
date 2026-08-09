@@ -31,4 +31,11 @@ class Settings:
     # Steam
     STEAM_API_KEY = os.getenv("STEAM_API_KEY")
 
+    # Radar / Web authentication
+    JWT_SECRET = os.getenv("JWT_SECRET", "")
+    JWT_TTL_SECONDS = int(os.getenv("JWT_TTL_SECONDS", 86400))
+    WEB_ORIGIN = os.getenv("WEB_ORIGIN", "http://localhost:5173").rstrip("/")
+    RADAR_SCAN_INTERVAL_SECONDS = int(os.getenv("RADAR_SCAN_INTERVAL_SECONDS", 20))
+    RADAR_SESSION_SECONDS = int(os.getenv("RADAR_SESSION_SECONDS", 600))
+
 settings = Settings()

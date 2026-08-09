@@ -4,6 +4,7 @@ from sqlalchemy import text
 from database import get_db_connection
 from pydantic import BaseModel
 from config import settings
+from services.auth import issue_access_token
 from typing import Optional
 import os
 import re
@@ -58,14 +59,17 @@ async def login(data: UserLogin, connection=Depends(get_db_connection)):
         if row:
             # 【已注册】返回用户信息
             # 注意：row.steam_id 可能是 None，虽然理论上注册流程保证了它存在
+            login_data = {
+                "is_registered": True,
+                "uuid": openid,
+                "steam_id": row.steam_id
+            }
+            if settings.JWT_SECRET:
+                login_data["access_token"] = issue_access_token(openid)
             return {
                 "code": 200,
                 "message": "Login Success",
-                "data": {
-                    "is_registered": True,
-                    "uuid": openid,
-                    "steam_id": row.steam_id
-                }
+                "data": login_data
             }
         else:
             # 【未注册】告诉前端去注册
@@ -142,10 +146,13 @@ async def onboarding(data: UserOnboarding, connection = Depends(get_db_connectio
         # [修改] SQLAlchemy 需要手动提交
         connection.commit() 
         
+        response_data = {"uuid": openid, "steam_id": real_steam_id}
+        if settings.JWT_SECRET:
+            response_data["access_token"] = issue_access_token(openid)
         return {
-            "code": 200, 
-            "message": "Binding Success", 
-            "data": {"uuid": openid, "steam_id": real_steam_id} 
+            "code": 200,
+            "message": "Binding Success",
+            "data": response_data,
         }
 
     except Exception as e:
@@ -157,7 +164,7 @@ async def onboarding(data: UserOnboarding, connection = Depends(get_db_connectio
 async def get_my_profile(openid: str, connection = Depends(get_db_connection)):
     # 注意：实际生产中 openid 应该从 Header 的 Token 解析，现在开发阶段我们先通过参数传
     try:
-        sql = text("SELECT uuid, steam_id, auth_code, match_code, avatar, nickname, canEdit, created_at FROM users WHERE uuid = :uuid")
+        sql = text("SELECT uuid, steam_id, avatar, nickname, canEdit, created_at FROM users WHERE uuid = :uuid")
         
         result = connection.execute(sql, {"uuid": openid}).fetchone()
             
