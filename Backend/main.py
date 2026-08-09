@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from routers import users, posts, daily_rank, player_stats, notifications # 导入子模块
+from routers import users, posts, daily_rank, player_stats, notifications, radar, web_auth
 
 app = FastAPI(title="TrashBox API", version="1.0.0")
 
@@ -21,6 +21,8 @@ app.include_router(posts.router)
 app.include_router(daily_rank.router)
 app.include_router(player_stats.router)
 app.include_router(notifications.router)
+app.include_router(radar.router)
+app.include_router(web_auth.router)
 # app.include_router(stats.router)
 # app.include_router(friends.router)
 
@@ -35,12 +37,6 @@ async def internal_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"code": 500, "message": f"Internal Server Error: {str(exc)}"},
     )
-
-try:
-    app.include_router(users.router)
-    print("✅ Users Router 加载成功")
-except Exception as e:
-    print(f"❌ Users Router 加载失败: {e}")
 
 @app.get("/test")
 def root():
