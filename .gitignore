@@ -1,5 +1,10 @@
 *.log
 *.env
+!.env.example
 /aspnet_client
-/_pycache_
+__pycache__/
+*.py[cod]
 /assets
+.DS_Store
+.claude/
+/out/
