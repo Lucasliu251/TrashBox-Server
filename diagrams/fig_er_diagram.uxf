@@ -1,0 +1,89 @@
+<diagram program="umletino" version="15.1"><zoom_level>7</zoom_level><element><id>UMLClass</id><coordinates><x>41</x><y>161</y><w>203</w><h>175</h></coordinates><panel_attributes>users
+--
+PK uuid: VARCHAR
+   steam_id: VARCHAR
+   auth_code: VARCHAR
+   match_code: VARCHAR
+   nickname: VARCHAR
+   avatar: VARCHAR
+   canEdit: TINYINT
+   created_at: DATETIME
+   updated_at: DATETIME</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>328</x><y>147</y><w>224</w><h>238</h></coordinates><panel_attributes>daily
+--
+PK steam_id: VARCHAR
+PK record_date: DATE
+   nickname: VARCHAR
+   total_kills: INT
+   total_deaths: INT
+   total_mvps: INT
+   total_HS: INT
+   total_damage: INT
+   total_rounds_played: INT
+   total_wins: INT
+   total_time_played: BIGINT
+   total_money_earned: BIGINT
+   style_tag: VARCHAR</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>629</x><y>147</y><w>203</w><h>217</h></coordinates><panel_attributes>weekly
+--
+PK steam_id: VARCHAR
+PK week_start: DATE
+   nickname: VARCHAR
+   kills: INT
+   deaths: INT
+   mvps: INT
+   headshots: INT
+   damage: INT
+   rounds_played: INT
+   wins: INT
+   rating: FLOAT
+   style_tag: VARCHAR</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>888</x><y>147</y><w>203</w><h>154</h></coordinates><panel_attributes>bg=yellow
+server_avg_stats
+--
+PK date: DATE
+   avg_kpr: FLOAT
+   avg_spr: FLOAT
+   avg_adr: FLOAT
+   avg_hsr: FLOAT
+   avg_mpr: FLOAT
+   avg_wr: FLOAT
+   active_players: INT</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>41</x><y>462</y><w>189</w><h>140</h></coordinates><panel_attributes>posts
+--
+PK id: INT AI
+FK uuid: VARCHAR
+   title: VARCHAR
+   content: LONGTEXT
+   tag: VARCHAR
+   views: INT
+   created_at: DATETIME</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>314</x><y>462</y><w>196</w><h>112</h></coordinates><panel_attributes>comments
+--
+PK id: INT AI
+FK post_id: INT
+FK uuid: VARCHAR
+   content: TEXT
+   created_at: DATETIME</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>594</x><y>462</y><w>217</w><h>84</h></coordinates><panel_attributes>subscriptions
+--
+PF openid: VARCHAR
+PK template_id: VARCHAR
+   remaining_count: INT</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>902</x><y>462</y><w>196</w><h>112</h></coordinates><panel_attributes>friends
+--
+PK id: INT AI
+FK uuid: VARCHAR
+FK friend_uuid: VARCHAR
+   status: TINYINT
+   created_at: DATETIME</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>237</x><y>238</y><w>105</w><h>35</h></coordinates><panel_attributes>lt=..
+m1=1
+m2=*
+steam_id</panel_attributes><additional_attributes>10;25;130;25</additional_attributes></element><element><id>Relation</id><coordinates><x>545</x><y>238</y><w>98</w><h>35</h></coordinates><panel_attributes>lt=..
+m1=1
+m2=*
+steam_id</panel_attributes><additional_attributes>10;20;120;20</additional_attributes></element><element><id>Relation</id><coordinates><x>132</x><y>329</y><w>28</w><h>147</h></coordinates><panel_attributes>lt=-
+m1=1
+m2=*</panel_attributes><additional_attributes>10;10;10;190</additional_attributes></element><element><id>Relation</id><coordinates><x>223</x><y>511</y><w>105</w><h>28</h></coordinates><panel_attributes>lt=-
+m1=1
+m2=*</panel_attributes><additional_attributes>10;10;130;10</additional_attributes></element><element><id>Relation</id><coordinates><x>195</x><y>329</y><w>224</w><h>147</h></coordinates><panel_attributes>lt=-
+m1=1
+m2=*</panel_attributes><additional_attributes>10;10;300;190</additional_attributes></element><element><id>Relation</id><coordinates><x>237</x><y>315</y><w>483</w><h>161</h></coordinates><panel_attributes>lt=-
+m1=1
+m2=*</panel_attributes><additional_attributes>10;10;670;210</additional_attributes></element><element><id>Relation</id><coordinates><x>237</x><y>280</y><w>679</w><h>196</h></coordinates><panel_attributes>lt=-
+m1=1
+m2=*
+uuid, friend_uuid</panel_attributes><additional_attributes>10;10;950;260</additional_attributes></element></diagram>

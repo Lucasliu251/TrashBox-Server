@@ -1,0 +1,78 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        TrashBox 数据库 ER 关系图                            ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+                            ┌─────────────────────────┐
+                            │    server_avg_stats      │
+                            │  ═════════════════════  │
+                            │ PK  date         DATE   │
+                            │     avg_kpr     FLOAT   │
+                            │     avg_spr     FLOAT   │
+                            │     avg_adr     FLOAT   │
+                            │     avg_hsr     FLOAT   │
+                            │     avg_mpr     FLOAT   │
+                            │     avg_wr      FLOAT   │
+                            │     active_players INT  │
+                            └─────────────────────────┘
+                              [独立表 · 无外键依赖]
+
+
+ ┌─────────────────────┐      ┌──────────────────────────────┐      ┌─────────────────────┐
+ │       users          │      │           daily              │      │       weekly         │
+ │ ═══════════════════  │      │ ═══════════════════════════  │      │ ═══════════════════  │
+ │ PK  uuid     VARCHAR │◄─╌╌►│ PK  steam_id       VARCHAR  │╌╌╌╌►│ PK  steam_id VARCHAR │
+ │    steam_id  VARCHAR │─┘╌╌  │ PK  record_date    DATE     │ ╌╌╌  │ PK  week_start DATE  │
+ │    auth_code VARCHAR │ 1:N  │    nickname        VARCHAR  │ 1:N  │    nickname  VARCHAR │
+ │    match_codeVARCHAR│(隐式) │    total_kills     INT      │(隐式)│    kills     INT     │
+ │    nickname  VARCHAR │      │    total_deaths    INT      │      │    deaths    INT     │
+ │    avatar    VARCHAR │      │    total_mvps      INT      │      │    mvps      INT     │
+ │    canEdit   TINYINT │      │    total_HS        INT      │      │    headshots INT     │
+ │    created_atDATETIME│      │    total_damage    INT      │      │    damage    INT     │
+ │    updated_atDATETIME│      │    total_rounds    INT      │      │    rounds    INT     │
+ └────────┬──┬──┬──┬────┘      │    total_wins      INT      │      │    wins      INT     │
+          │  │  │  │           │    total_time      BIGINT   │      │    rating   FLOAT    │
+          │  │  │  │           │    total_money     BIGINT   │      │    style_tag VARCHAR │
+          │  │  │  │           │    style_tag        VARCHAR │      └─────────────────────┘
+          │  │  │  │           └──────────────────────────────┘
+          │  │  │  │
+     1:N  │  │  │  │ 1:N
+  (uuid)  │  │  │  │ (openid)
+          │  │  │  │
+ ┌────────┘  │  │  └──────────────────────────────────┐
+ │  posts    │  │                    subscriptions    │
+ │ ══════════│││                    ═════════════════  │
+ │ PK  id    INT AI                 PK  openid  VARCHAR│
+ │ FK  uuid──┘││                    PK  template_id   │
+ │     title  VARCHAR                   remaining_count│
+ │     content LONGTEXT             └──────────────────┘
+ │     tag    VARCHAR
+ │     views  INT                   ┌──────────────────┐
+ │     created_at DATETIME          │     friends      │
+ └─────┬──────┘                     │ ═══════════════  │
+       │                            │ PK  id     INT AI│
+       │ 1:N (post_id)             │ FK  uuid  VARCHAR│────┐
+       │                            │ FK  friend_uuid  │────┤
+ ┌─────┴──────────┐                 │     status TINYINT│   │
+ │   comments     │                 │     created_at    │   │
+ │ ═════════════  │                 └──────────────────┘   │
+ │ PK  id    INT AI                                       │
+ │ FK  post_id ──────────► posts.id                       │
+ │ FK  uuid ─────────────────────────► users.uuid  ◄──────┘
+ │     content TEXT
+ │     created_at DATETIME
+ └───────────────┘
+
+
+ ─── 关系汇总 ────────────────────────────────────────────
+ posts.uuid           ──1:N──► users.uuid         (逻辑FK)
+ comments.post_id     ──1:N──► posts.id           (逻辑FK)
+ comments.uuid        ──1:N──► users.uuid         (逻辑FK)
+ subscriptions.openid ──1:N──► users.uuid         (逻辑FK)
+ friends.uuid         ──1:N──► users.uuid         (逻辑FK)
+ friends.friend_uuid  ──1:N──► users.uuid         (逻辑FK)
+ daily.steam_id       ──1:N──► users.steam_id     (隐式关联)
+ weekly.steam_id      ──1:N──► users.steam_id     (隐式关联)
+
+ 注：所有关系均为应用层逻辑关联，无SQL级别外键约束
+     daily/weekly 通过 steam_id 与 users 隐式关联
+     weekly 和 friends 路由文件当前为空，尚未在API层实现

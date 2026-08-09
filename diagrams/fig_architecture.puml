@@ -1,0 +1,138 @@
+@startuml fig_architecture
+!theme plain
+skinparam backgroundColor white
+skinparam defaultFontName "PingFang HK"
+skinparam componentStyle rectangle
+skinparam padding 6
+skinparam roundCorner 10
+
+title TrashBox 系统整体架构图
+
+' ===== 前端表现层 =====
+package "前端表现层" as FE #E8F5E9 {
+    package "微信小程序" as WX #C8E6C9 {
+        [社区首页 /index] as idx
+        [帖子列表 /posts] as posts
+        [帖子详情 /post-detail] as pd
+        [评论发布] as cmt
+        [每日排行 /rank] as rank
+        [反应测试 /reaction] as react
+        [我的数据 /stats] as stats
+        [他人数据 /statsVis] as sv
+        [Steam绑定 /onboarding] as onboard
+        [玩家搜索] as search
+    }
+    package "Web管理端" as WEB #C8E6C9 {
+        [富文本编辑器\n(Quill.js)] as quill
+        [图片上传] as upload
+        [帖子发布] as pub
+    }
+    component "微信小程序框架\nWXML / WXSS / TypeScript" as wxframework
+}
+
+' ===== 接口服务层 =====
+package "接口服务层" as API #E3F2FD {
+    package "FastAPI 路由" as ROUTES #BBDEFB {
+        component "users.py" as r_users
+        component "posts.py" as r_posts
+        component "daily_rank.py" as r_rank
+        component "player_stats.py" as r_stats
+        component "notifications.py" as r_notif
+    }
+    component "FastAPI + Uvicorn\n0.0.0.0:2026\nCORS / StaticFiles" as fastapi
+    component "Nginx 反向代理\n/api/* → :2026\nCORS Headers" as iis
+}
+
+' ===== 算法计算层 =====
+package "算法计算层" as ALGO #FFF3E0 {
+    component "Rating 评分算法\nv1: KPR/SPR/ADR/MPR\n加权 0.35/0.22/0.23/0.20\n基准比对 → 加权求和 → clamp [0, 3.5]" as rating
+    component "K-Means 聚类\nStandardScaler → KMeans\n12原型向量匹配\n(狠/准/六/混/牢/巧/莽/力/崩/钥/浪/凡)" as kmeans
+    component "日增量计算\n今日累计 - 昨日累计\n≥5回合过滤" as delta
+    component "全服均值统计\navg_kpr/spr/adr/hsr/mpr/wr" as avg
+}
+
+' ===== 数据存储层 =====
+package "数据存储层" as DATA #F3E5F5 {
+    database "MySQL 8.x\ntrashbox\nutf8mb4\nPool: 10/30" as mysql
+    package "数据表" as TABLES #E1BEE7 {
+        rectangle "users\n(微信+Steam绑定)" as t_users
+        rectangle "daily\n(每日累计统计)" as t_daily
+        rectangle "weekly\n(周统计)" as t_weekly
+        rectangle "posts\n(社区帖子)" as t_posts
+        rectangle "comments\n(帖子评论)" as t_comments
+        rectangle "subscriptions\n(推送订阅)" as t_sub
+        rectangle "server_avg_stats\n(全服均值)" as t_avg
+        rectangle "friends\n(好友关系)" as t_friends
+    }
+    folder "本地文件存储" as fs {
+        rectangle "assets/posts/\n帖子图片" as fp_posts
+        rectangle "assets/avatars/\n用户头像" as fp_avatars
+    }
+}
+
+' ===== 基础设施层 =====
+package "基础设施层" as INFRA #FFEBEE {
+    cloud "DNS\ntrashbox.tech" as dns
+    cloud "CDN / SSL终止\nHTTPS → HTTP\n静态资源缓存" as cdn
+    node "阿里云 ECS\nWindows Server\n47.115.75.168" as ecs
+    cloud "微信开放平台\napi.weixin.qq.com" as wxapi
+    cloud "Steam Web API\napi.steampowered.com" as steamapi
+    component "Windows 任务计划\n每日定时执行" as cron
+}
+
+' ===== 层间关系 =====
+FE -[hidden]down- API
+API -[hidden]down- ALGO
+ALGO -[hidden]down- DATA
+DATA -[hidden]down- INFRA
+
+' 前端 → 接口
+idx --> iis : HTTPS
+posts --> iis : HTTPS
+pd --> iis : HTTPS
+cmt --> iis : HTTPS
+rank --> iis : HTTPS
+react --> iis : HTTPS
+stats --> iis : HTTPS
+sv --> iis : HTTPS
+onboard --> iis : HTTPS
+search --> iis : HTTPS
+quill --> iis : HTTPS
+pub --> iis : HTTPS
+
+iis --> fastapi : HTTP :2026
+fastapi --> ROUTES
+
+' 接口 → 算法
+r_stats --> rating : 调用
+r_rank --> rating : 调用
+r_rank --> delta : 调用
+
+' 接口 → 数据
+r_users --> mysql : pymysql
+r_posts --> mysql : pymysql
+r_rank --> mysql : pymysql
+r_stats --> mysql : pymysql
+r_notif --> mysql : pymysql
+r_posts --> fs : 静态文件
+r_users --> fs : 头像上传
+
+' 算法 → 数据
+kmeans --> mysql : 读写 daily
+delta --> mysql : 读 daily
+avg --> mysql : 写 server_avg_stats
+rating --> mysql : 读 daily
+
+' 接口 → 外部
+r_users --> wxapi : 登录 / Token
+r_notif --> wxapi : 订阅消息
+r_users --> steamapi : ID解析
+
+' 基础设施
+dns --> cdn : 解析
+cdn --> ecs : 回源
+cron --> ALGO : 触发
+cron --> r_rank : 拉取榜单
+cron --> wxapi : 战报推送
+
+@enduml

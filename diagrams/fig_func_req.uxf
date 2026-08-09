@@ -1,0 +1,96 @@
+<diagram program="umletino" version="15.1"><zoom_level>10</zoom_level><element><id>Text</id><coordinates><x>150</x><y>20</y><w>500</w><h>50</h></coordinates><panel_attributes>TrashBox 系统功能需求模块图
+fontsize=20
+center</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>270</x><y>70</y><w>260</w><h>50</h></coordinates><panel_attributes>TrashBox
+CS2 微信小程序</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>170</y><w>260</w><h>40</h></coordinates><panel_attributes>用户域</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>310</x><y>170</y><w>260</w><h>40</h></coordinates><panel_attributes>内容域</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>620</x><y>170</y><w>260</w><h>40</h></coordinates><panel_attributes>数据域</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>250</x><y>110</y><w>120</w><h>80</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>100;10;10;60</additional_attributes></element><element><id>Relation</id><coordinates><x>390</x><y>110</y><w>30</w><h>80</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;60</additional_attributes></element><element><id>Relation</id><coordinates><x>460</x><y>110</y><w>290</w><h>80</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;270;60</additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>270</y><w>260</w><h>170</h></coordinates><panel_attributes>认证与账户
+--
+微信静默登录
+  wx.login → POST /users/login
+Steam账户绑定
+  3字段表单 + 帮助引导
+自动登录与状态回调
+  app.userCallback 模式
+登出
+  清除本地UUID</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>110</x><y>200</y><w>30</w><h>90</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;70</additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>480</y><w>260</w><h>130</h></coordinates><panel_attributes>个人资料
+--
+头像编辑
+  微信 chooseAvatar + 上传
+昵称编辑
+  微信 nickname 组件
+资料更新
+  PUT /users/update</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>110</x><y>430</y><w>30</w><h>70</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLClass</id><coordinates><x>310</x><y>270</y><w>260</w><h>210</h></coordinates><panel_attributes>社区互动
+--
+首页信息流
+  Banner轮播 + Rating预览 + 帖子预览
+帖子列表
+  分页加载 / 下拉刷新 / 无限滚动
+帖子详情
+  富文本渲染 / 图片自适应
+评论发布
+  POST /posts/{id}/comment
+玩家搜索
+  GET /users/search?q=...
+管理端富文本发布
+  Quill编辑器 + 图片上传</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>420</x><y>200</y><w>30</w><h>90</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;70</additional_attributes></element><element><id>UMLClass</id><coordinates><x>310</x><y>520</y><w>260</w><h>130</h></coordinates><panel_attributes>排行榜
+--
+每日排行
+  日期选择 + Rating降序
+首页Top5预览
+  首页Rating榜单区
+排行详情跳转
+  → statsVis 查看玩家</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>420</x><y>470</y><w>30</w><h>70</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLClass</id><coordinates><x>310</x><y>690</y><w>260</w><h>130</h></coordinates><panel_attributes>反应测试
+--
+5轮反应速度测试
+  状态机: idle→waiting→ready→done
+结果评价
+  4档评语 (NiKo/职业/正常/老年人)
+成绩提交
+  POST /reaction/submit (预留)</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>420</x><y>640</y><w>30</w><h>70</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLClass</id><coordinates><x>620</x><y>270</y><w>260</w><h>210</h></coordinates><panel_attributes>玩家数据
+--
+30天数据面板
+  K/D / ADR / 胜率 / 时长
+能力雷达图
+  6轴: KPR ADR SPR WR MPR HSR
+KD趋势折线图
+  可滑动 / 点击详情 / 触觉反馈
+每日对局日志
+  击杀/死亡/Rating/ADR/MVP/HS%
+风格标签系统
+  12标签 + 颜色映射
+查看他人数据
+  statsVis 只读页面</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>730</x><y>200</y><w>30</w><h>90</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;70</additional_attributes></element><element><id>UMLClass</id><coordinates><x>620</x><y>520</y><w>260</w><h>130</h></coordinates><panel_attributes>通知推送
+--
+微信订阅消息
+  requestSubscribeMessage
+每日战报推送
+  23:30 榜单更新时推送
+推送次数管理
+  剩余次数扣减/查询</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>730</x><y>470</y><w>30</w><h>70</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLClass</id><coordinates><x>930</x><y>70</y><w>240</w><h>120</h></coordinates><panel_attributes>TabBar 导航结构
+--
+Tab 1: 社区 (index)
+Tab 2: 反应测试 (reaction)
+Tab 3: 数据 (stats)</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>520</x><y>90</y><w>430</w><h>30</h></coordinates><panel_attributes>lt=..</panel_attributes><additional_attributes>10;15;410;15</additional_attributes></element><element><id>UMLClass</id><coordinates><x>930</x><y>230</y><w>240</w><h>280</h></coordinates><panel_attributes>页面路由映射
+--
+/  → 首页信息流
+/reaction → 反应测试
+/stats → 我的数据
+/onboarding → Steam绑定
+/posts → 帖子列表
+/post-detail → 帖子详情
+/rank → 每日排行
+/statsVis → 他人数据</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>930</x><y>550</y><w>240</w><h>280</h></coordinates><panel_attributes>API 端点全景
+--
+POST /users/login
+POST /users/onboarding
+GET  /users/me
+GET  /users/search
+PUT  /users/update
+POST /users/avatar
+GET  /players/{id}/history
+GET  /rankings/daily
+GET  /posts
+GET  /posts/{id}
+POST /posts/{id}/comment
+POST /posts
+POST /posts/upload
+POST /notifications/subscribe
+POST /reaction/submit</panel_attributes><additional_attributes></additional_attributes></element></diagram>

@@ -1,0 +1,74 @@
+<diagram program="umletino" version="15.1"><zoom_level>8</zoom_level><element><id>Text</id><coordinates><x>160</x><y>0</y><w>480</w><h>40</h></coordinates><panel_attributes>TrashBox 核心离线批处理业务流程图
+fontsize=20
+center</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>384</x><y>88</y><w>24</w><h>72</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;70</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>88</x><y>128</y><w>240</w><h>32</h></coordinates><panel_attributes>分支A: calc_daily_styles.py</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>488</x><y>128</y><w>224</w><h>32</h></coordinates><panel_attributes>分支B: send_report.py</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>320</x><y>136</y><w>88</w><h>24</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>90;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>384</x><y>136</y><w>120</w><h>24</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;130;10</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>88</x><y>184</y><w>240</w><h>24</h></coordinates><panel_attributes>A1: 数据拉取 (daily表两天累计值)</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>88</x><y>216</y><w>240</w><h>96</h></coordinates><panel_attributes>SQL: SELECT ... FROM daily
+WHERE record_date IN (:today, :yesterday)
+--
+按 steam_id 分组为
+{ sid: { today: row, yesterday: row } }
+--
+必须同时存在两天数据
+(新用户首日跳过)</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>200</x><y>304</y><w>24</w><h>56</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>88</x><y>344</y><w>240</w><h>24</h></coordinates><panel_attributes>A2: 计算日增量 (Delta)</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>88</x><y>376</y><w>240</w><h>104</h></coordinates><panel_attributes>d_rounds = today - yesterday
+d_kills  = today - yesterday
+d_deaths / d_damage / d_mvps / d_wins
+--
+过滤: d_rounds &lt; 5 → 跳过
+--
+特征比率:
+KPR = d_kills / d_rounds
+SPR = (d_rounds - d_deaths) / d_rounds
+ADR / HSR / MPR / WR</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>200</x><y>472</y><w>24</w><h>56</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>88</x><y>512</y><w>240</w><h>24</h></coordinates><panel_attributes>A3: K-Means 聚类 + 标签匹配</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>88</x><y>544</y><w>240</w><h>144</h></coordinates><panel_attributes>1. StandardScaler Z-Score标准化
+2. KMeans(n=min(8, N/2)) 聚类
+3. 12个原型向量匹配:
+   狠/准/六/混/牢/巧/莽/力/崩/钥/浪/凡
+4. 欧氏距离选最近原型
+   → 每个cluster分配标签
+--
+若玩家数 &lt; 5 → 全部标"新"</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>88</x><y>704</y><w>240</w><h>72</h></coordinates><panel_attributes>A3.5: 计算全服平均
+--
+avg_kpr/spr/adr/hsr/mpr/wr
+UPSERT → server_avg_stats</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>200</x><y>680</y><w>24</w><h>48</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;40</additional_attributes></element><element><id>Relation</id><coordinates><x>200</x><y>768</y><w>24</w><h>56</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>88</x><y>808</y><w>240</w><h>24</h></coordinates><panel_attributes>A4: 标签回写 (daily表)</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>88</x><y>840</y><w>240</w><h>72</h></coordinates><panel_attributes>UPDATE daily
+SET style_tag = :tag
+WHERE steam_id = :sid
+  AND record_date = :today
+--
+commit / rollback</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>488</x><y>184</y><w>224</w><h>24</h></coordinates><panel_attributes>B1: 拉取每日榜单数据</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>488</x><y>216</y><w>224</w><h>64</h></coordinates><panel_attributes>GET /api/v1/rankings/daily
+  ?date=昨天日期
+--
+→ ranking_map
+{ steam_id: {rank, kd, adr...} }</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>592</x><y>272</y><w>24</w><h>56</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>488</x><y>312</y><w>224</w><h>24</h></coordinates><panel_attributes>B2: 查询订阅用户</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>488</x><y>344</y><w>224</w><h>72</h></coordinates><panel_attributes>SQL: SELECT s.openid,
+  s.remaining_count, u.steam_id
+FROM subscriptions s
+JOIN users u ON s.openid = u.uuid
+WHERE remaining_count &gt; 0
+  AND template_id = :tid</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>592</x><y>408</y><w>24</w><h>56</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>488</x><y>448</y><w>224</w><h>24</h></coordinates><panel_attributes>B3: 获取微信 access_token</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>488</x><y>480</y><w>224</w><h>48</h></coordinates><panel_attributes>GET api.weixin.qq.com/cgi-bin/token
+  ?grant_type=client_credential
+  &amp;appid=...&amp;secret=...</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>592</x><y>520</y><w>24</w><h>56</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>488</x><y>560</y><w>224</w><h>24</h></coordinates><panel_attributes>B4: 匹配玩家数据 + 推送</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>488</x><y>592</y><w>224</w><h>128</h></coordinates><panel_attributes>FOR each subscriber:
+  player_data = ranking_map[steam_id]
+  IF 有数据:
+    构造: "#5 KD:1.22 A:88"
+  ELSE:
+    "昨日无排名记录"
+--
+POST subscribe/send
+  touser: openid
+  template_id: ...
+  page: pages/rank/rank
+  data: { ID, 昵称, 时间, 数据, 备注 }</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>592</x><y>712</y><w>24</w><h>56</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>488</x><y>752</y><w>224</w><h>24</h></coordinates><panel_attributes>B5: 推送成功 → 扣减次数</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>488</x><y>784</y><w>224</w><h>64</h></coordinates><panel_attributes>SQL: UPDATE subscriptions
+SET remaining_count =
+  remaining_count - 1
+WHERE openid = :oid
+  AND template_id = :tid
+--
+errcode == 0 才扣减</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLSpecialState</id><coordinates><x>360</x><y>928</y><w>80</w><h>48</h></coordinates><panel_attributes>任务
+完成</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>192</x><y>904</y><w>184</w><h>64</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;210;60</additional_attributes></element><element><id>Relation</id><coordinates><x>432</x><y>840</y><w>184</w><h>128</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>210;10;10;140</additional_attributes></element><element><id>UMLClass</id><coordinates><x>368</x><y>216</y><w>96</w><h>32</h></coordinates><panel_attributes>MySQL
+daily 表</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>320</x><y>224</y><w>72</w><h>24</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>70;15;10;15</additional_attributes></element><element><id>UMLClass</id><coordinates><x>736</x><y>224</y><w>96</w><h>32</h></coordinates><panel_attributes>FastAPI
+Rankings API</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>704</x><y>232</y><w>56</w><h>24</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>50;10;10;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>736</x><y>480</y><w>112</w><h>32</h></coordinates><panel_attributes>微信开放平台
+api.weixin.qq.com</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>704</x><y>488</y><w>56</w><h>24</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;50;10</additional_attributes></element><element><id>Relation</id><coordinates><x>704</x><y>624</y><w>56</w><h>24</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;50;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>736</x><y>608</y><w>112</w><h>40</h></coordinates><panel_attributes>微信推送
+subscribe/send
+api.weixin.qq.com</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>368</x><y>320</y><w>96</w><h>72</h></coordinates><panel_attributes>执行顺序:
+--
+A先执行
+(计算标签)
+B后执行
+(读取榜单)</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLSpecialState</id><coordinates><x>344</x><y>48</y><w>96</w><h>48</h></coordinates><panel_attributes>Windows
+任务计划</panel_attributes><additional_attributes></additional_attributes></element></diagram>

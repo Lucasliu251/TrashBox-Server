@@ -1,0 +1,63 @@
+<diagram program="umletino" version="15.1"><zoom_level>7</zoom_level><element><id>Text</id><coordinates><x>168</x><y>42</y><w>336</w><h>35</h></coordinates><panel_attributes>TrashBox Rating v1 评分算法流程图
+fontsize=20
+center</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>28</x><y>91</y><w>140</w><h>28</h></coordinates><panel_attributes>Step 1: 原始数据输入</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>210</x><y>77</y><w>154</w><h>84</h></coordinates><panel_attributes>输入参数
+--
+kills    INT    击杀数
+deaths   INT    死亡数
+dmg      INT    总伤害
+mvps     INT    MVP次数
+rounds   INT    总回合数</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>154</x><y>98</y><w>77</w><h>21</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;15;90;15</additional_attributes></element><element><id>Relation</id><coordinates><x>357</x><y>105</y><w>84</w><h>21</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;15;100;15</additional_attributes></element><element><id>UMLSpecialState</id><coordinates><x>427</x><y>84</y><w>84</w><h>56</h></coordinates><panel_attributes>rounds
+== 0?</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>504</x><y>91</y><w>91</w><h>35</h></coordinates><panel_attributes>lt=-&gt;
+Yes</panel_attributes><additional_attributes>10;25;110;25</additional_attributes></element><element><id>UMLClass</id><coordinates><x>581</x><y>91</y><w>84</w><h>28</h></coordinates><panel_attributes>return 0.0</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>462</x><y>133</y><w>28</w><h>42</h></coordinates><panel_attributes>lt=-&gt;
+No</panel_attributes><additional_attributes>10;10;10;40</additional_attributes></element><element><id>Relation</id><coordinates><x>98</x><y>112</y><w>21</w><h>105</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;130</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>28</x><y>189</y><w>175</w><h>28</h></coordinates><panel_attributes>Step 2: 每回合指标计算</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>210</x><y>161</y><w>287</w><h>126</h></coordinates><panel_attributes>Per-Round Stats (带封顶)
+--
+KPR = min(kills / rounds, 5.0)     击杀率
+DPR = min(deaths / rounds, 1.0)    死亡率
+ADR = min(dmg / rounds, 500)       场均伤害
+MPR = min(mvps / rounds, 1.0)      MVP率
+SPR = 1 - DPR                      存活率</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>189</x><y>196</y><w>42</w><h>21</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;40;10</additional_attributes></element><element><id>Relation</id><coordinates><x>98</x><y>210</y><w>21</w><h>140</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;180</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>28</x><y>322</y><w>175</w><h>28</h></coordinates><panel_attributes>Step 3: 基准值比对</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>210</x><y>301</y><w>133</w><h>91</h></coordinates><panel_attributes>CS2 平均基准
+--
+AVG_KPR = 0.67
+AVG_SPR = 0.33
+AVG_ADR = 74.0
+AVG_MPR = 0.10</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>385</x><y>301</y><w>203</w><h>91</h></coordinates><panel_attributes>Sub-Ratings (个人/平均)
+--
+kill_rating     = KPR / 0.67
+survival_rating = SPR / 0.33
+damage_rating   = ADR / 74.0
+mvp_rating      = MPR / 0.10
+(1.0 = 平均水平)</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>189</x><y>329</y><w>42</w><h>21</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;40;10</additional_attributes></element><element><id>Relation</id><coordinates><x>336</x><y>329</y><w>70</w><h>28</h></coordinates><panel_attributes>lt=&lt;&lt;-
+÷</panel_attributes><additional_attributes>10;20;80;20</additional_attributes></element><element><id>Relation</id><coordinates><x>490</x><y>273</y><w>21</w><h>42</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;40;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>98</x><y>343</y><w>21</w><h>112</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;140</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>28</x><y>427</y><w>175</w><h>28</h></coordinates><panel_attributes>Step 4: 加权求和</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>210</x><y>406</y><w>196</w><h>98</h></coordinates><panel_attributes>权重分配
+--
+Kill     × 0.35   最直接的贡献
+Damage   × 0.23   打残但没拿头
+Survival × 0.22   活着才有输出
+MVP      × 0.20   奖励关键局胜者
+──────────────────
+合计     = 1.00</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>399</x><y>420</y><w>63</w><h>35</h></coordinates><panel_attributes>lt=&lt;&lt;-
+×</panel_attributes><additional_attributes>10;25;70;25</additional_attributes></element><element><id>Relation</id><coordinates><x>189</x><y>434</y><w>42</w><h>21</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;40;10</additional_attributes></element><element><id>Relation</id><coordinates><x>483</x><y>385</y><w>21</w><h>49</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;50;10;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>441</x><y>420</y><w>224</w><h>42</h></coordinates><panel_attributes>raw_rating =
+  kill×0.35 + dmg×0.23
+  + surv×0.22 + mvp×0.20</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>98</x><y>448</y><w>21</w><h>105</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;130</additional_attributes></element><element><id>Relation</id><coordinates><x>399</x><y>455</y><w>168</w><h>70</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>220;10;10;80</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>28</x><y>532</y><w>175</w><h>28</h></coordinates><panel_attributes>Step 5: 修正与钳制</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>210</x><y>511</y><w>196</w><h>70</h></coordinates><panel_attributes>round(raw_rating, 2)
+--
+clamp to [0.0, 3.5]
+--
+通常范围: 0.4 ~ 2.5
+均值约 1.05 (类似 HLTV)</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>189</x><y>539</y><w>42</w><h>21</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;40;10</additional_attributes></element><element><id>Relation</id><coordinates><x>98</x><y>553</y><w>21</w><h>98</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;10;120</additional_attributes></element><element><id>UMLUseCase</id><coordinates><x>28</x><y>623</y><w>140</w><h>28</h></coordinates><panel_attributes>Result: 结果输出</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>210</x><y>602</y><w>196</w><h>56</h></coordinates><panel_attributes>final_rating: Float
+--
+范围 [0.0, 3.5]
+≈ 1.05 为平均水平
+&lt; 0.8 偏弱  &gt; 1.5 优秀</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>301</x><y>574</y><w>21</w><h>42</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;40;10;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>518</x><y>518</y><w>203</w><h>77</h></coordinates><panel_attributes>调用方
+--
+1. daily_rank.py
+   GET /rankings/daily
+2. player_stats.py
+   GET /players/{id}/history
+   (每日评分 + 区间汇总评分)</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>399</x><y>539</y><w>140</w><h>21</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;15;180;15</additional_attributes></element><element><id>UMLClass</id><coordinates><x>518</x><y>609</y><w>203</w><h>98</h></coordinates><panel_attributes>计算示例
+--
+普通玩家 (73K 58D 9540DMG 11MVP 82R)
+  KPR=0.89 DPR=0.71 ADR=116 MPR=0.13
+  Rating ≈ 1.49
+
+炸鱼哥 (19K 4D 1986DMG 6MVP 14R)
+  KPR=1.36 DPR=0.29 ADR=142 MPR=0.43
+  Rating ≈ 2.38</panel_attributes><additional_attributes></additional_attributes></element></diagram>

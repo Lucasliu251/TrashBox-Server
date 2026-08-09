@@ -1,0 +1,135 @@
+@startuml fig_function_module
+!theme plain
+skinparam backgroundColor white
+skinparam defaultFontName "PingFang HK"
+skinparam packageStyle rectangle
+skinparam padding 6
+skinparam roundCorner 6
+skinparam nodesep 40
+skinparam ranksep 30
+
+title TrashBox 功能模块划分图
+
+left to right direction
+
+' ===== 上排3个模块 =====
+package "用户管理" as M1 #E8F5E9 {
+    card "认证登录" as M1_1 {
+        usecase "微信静默登录" as UC1_1
+        usecase "自动登录回调" as UC1_3
+    }
+    card "Steam绑定" as M1_2 {
+        usecase "3字段表单" as UC1_4
+        usecase "获取引导" as UC1_6
+    }
+    card "个人资料" as M1_3 {
+        usecase "头像编辑" as UC1_7
+        usecase "昵称修改" as UC1_8
+    }
+}
+
+package "战绩查询" as M2 #E3F2FD {
+    card "数据面板" as M2_1 {
+        usecase "30天概览" as UC2_1
+        usecase "每日日志" as UC2_2
+        usecase "风格标签" as UC2_3
+    }
+    card "可视化" as M2_2 {
+        usecase "雷达图" as UC2_4
+        usecase "KD趋势图" as UC2_5
+        usecase "全服对照" as UC2_6
+    }
+    card "查看他人" as M2_3 {
+        usecase "只读页面" as UC2_7
+        usecase "跳转进入" as UC2_8
+    }
+}
+
+package "排行榜" as M3 #FFF3E0 {
+    card "每日排行" as M3_1 {
+        usecase "日期选择" as UC3_1
+        usecase "Rating排序" as UC3_2
+        usecase "Top3样式" as UC3_3
+    }
+    card "首页预览" as M3_2 {
+        usecase "Top5卡片" as UC3_4
+        usecase "查看全部" as UC3_5
+    }
+    card "战报推送" as M3_3 {
+        usecase "订阅消息" as UC3_6
+        usecase "23:30推送" as UC3_7
+        usecase "次数管理" as UC3_8
+    }
+}
+
+' ===== 下排3个模块 =====
+package "社区互动" as M4 #F3E5F5 {
+    card "内容浏览" as M4_1 {
+        usecase "首页信息流" as UC4_1
+        usecase "帖子列表" as UC4_2
+        usecase "帖子详情" as UC4_3
+    }
+    card "互动" as M4_2 {
+        usecase "评论发布" as UC4_4
+        usecase "玩家搜索" as UC4_5
+    }
+    card "内容管理" as M4_3 {
+        usecase "富文本编辑" as UC4_6
+        usecase "图片上传" as UC4_7
+        usecase "帖子分类" as UC4_8
+    }
+}
+
+package "算法评估" as M5 #FFEBEE {
+    card "Rating评分" as M5_1 {
+        usecase "指标计算" as UC5_1
+        usecase "基准比对" as UC5_2
+        usecase "加权求和" as UC5_3
+        usecase "Clamp" as UC5_4
+    }
+    card "风格聚类" as M5_2 {
+        usecase "Z-Score" as UC5_5
+        usecase "KMeans" as UC5_6
+        usecase "原型匹配" as UC5_7
+    }
+    card "批量计算" as M5_3 {
+        usecase "Delta增量" as UC5_8
+        usecase "全服均值" as UC5_9
+        usecase "定时触发" as UC5_10
+    }
+}
+
+package "辅助功能" as M6 #ECEFF1 {
+    card "反应测试" as M6_1 {
+        usecase "5轮测试" as UC6_1
+        usecase "4档评价" as UC6_2
+        usecase "成绩提交" as UC6_3
+    }
+    card "系统支撑" as M6_2 {
+        usecase "导航栏" as UC6_4
+        usecase "CORS" as UC6_5
+        usecase "静态文件" as UC6_6
+        usecase "异常捕获" as UC6_7
+    }
+}
+
+' ===== 布局控制：上排一行，下排一行 =====
+M1 -[hidden]- M2
+M2 -[hidden]- M3
+M3 -[hidden]down- M4
+M4 -[hidden]- M5
+M5 -[hidden]- M6
+
+' ===== 模块间关键依赖 =====
+UC1_4 ..> UC1_1 : 需登录
+UC4_4 ..> UC1_1 : 需登录
+UC3_6 ..> UC1_1 : 需登录
+UC2_4 ..> UC2_6 : 对照
+UC5_8 --> UC5_5 : 输入
+UC5_5 --> UC5_6 : 标准化
+UC5_6 --> UC5_7 : 匹配
+UC5_1 --> UC5_2
+UC5_2 --> UC5_3
+UC5_3 --> UC5_4
+
+@enduml
