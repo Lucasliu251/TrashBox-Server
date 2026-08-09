@@ -29,3 +29,10 @@ def test_access_token_rejects_expired_token(monkeypatch):
     with pytest.raises(HTTPException) as exc:
         decode_access_token(token)
     assert exc.value.status_code == 401
+
+
+def test_access_token_rejects_malformed_base64(monkeypatch):
+    monkeypatch.setattr(settings, "JWT_SECRET", "unit-test-secret")
+    with pytest.raises(HTTPException) as exc:
+        decode_access_token("e30.%%%%.signature")
+    assert exc.value.status_code == 401

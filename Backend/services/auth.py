@@ -1,4 +1,5 @@
 import base64
+import binascii
 import hashlib
 import hmac
 import json
@@ -50,7 +51,7 @@ def decode_access_token(token: str) -> str:
         if int(decoded["exp"]) <= int(time.time()):
             raise ValueError("expired")
         return str(decoded["sub"])
-    except (ValueError, KeyError, TypeError, json.JSONDecodeError):
+    except (ValueError, KeyError, TypeError, json.JSONDecodeError, binascii.Error, UnicodeDecodeError):
         raise HTTPException(status_code=401, detail="Invalid or expired access token")
 
 

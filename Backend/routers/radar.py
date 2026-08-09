@@ -226,6 +226,8 @@ async def _run_session(session_id: str) -> None:
 
 @router.post("/resolve")
 async def resolve_target(data: ResolveRequest, _user=Depends(get_current_user)):
+    if not settings.STEAM_API_KEY:
+        raise HTTPException(status_code=503, detail="STEAM_API_KEY is not configured")
     try:
         return {"code": 200, "data": await SteamRadarClient(settings.STEAM_API_KEY).resolve(data.value)}
     except ValueError as exc:
