@@ -81,3 +81,11 @@ def test_risk_signals_include_manual_level_bans_and_new_account():
     )
     codes = {signal["code"] for signal in signals}
     assert {"cs_level_below_40", "no_service_medal", "steam_ban", "young_account", "low_cs2_playtime"} <= codes
+
+
+def test_low_playtime_signal_uses_1000_hour_boundary():
+    below_threshold = build_risk_signals({}, {}, {}, cs2_playtime_minutes=59999)
+    at_threshold = build_risk_signals({}, {}, {}, cs2_playtime_minutes=60000)
+
+    assert any(signal["code"] == "low_cs2_playtime" and "1000" in signal["label"] for signal in below_threshold)
+    assert all(signal["code"] != "low_cs2_playtime" for signal in at_threshold)

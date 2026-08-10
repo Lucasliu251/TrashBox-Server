@@ -148,8 +148,8 @@ def build_risk_signals(
         age_days = (now - datetime.fromtimestamp(int(created_at), tz=timezone.utc)).days
         if age_days < 365:
             signals.append({"code": "young_account", "severity": "medium", "label": "Steam 账号不足一年"})
-    if cs2_playtime_minutes is not None and cs2_playtime_minutes < 30000:
-        signals.append({"code": "low_cs2_playtime", "severity": "medium", "label": "CS2 可见时长低于 500 小时"})
+    if cs2_playtime_minutes is not None and cs2_playtime_minutes < 60000:
+        signals.append({"code": "low_cs2_playtime", "severity": "medium", "label": "CS2 可见时长低于 1000 小时"})
     return signals
 
 
