@@ -1,5 +1,10 @@
+import asyncio
+import base64
 import hashlib
+import logging
+import os
 import secrets
+import time
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
@@ -14,6 +19,56 @@ from services.auth import get_current_user, issue_access_token
 
 
 router = APIRouter(prefix="/api/v1/web-auth", tags=["Web Auth"])
+logger = logging.getLogger(__name__)
+_wx_access_token = ""
+_wx_token_expires_at = 0.0
+_wx_token_lock = asyncio.Lock()
+
+
+async def _mini_program_qr(scene: str) -> str | None:
+    """用现有小程序凭据生成微信扫一扫可识别的小程序码；失败时保留原扫码方式。"""
+    if os.getenv("WECHAT_MINI_QR_ENABLED") != "1" or not settings.WX_APP_ID or not settings.WX_APP_SECRET:
+        return None
+    global _wx_access_token, _wx_token_expires_at
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            if not _wx_access_token or time.monotonic() >= _wx_token_expires_at:
+                async with _wx_token_lock:
+                    if not _wx_access_token or time.monotonic() >= _wx_token_expires_at:
+                        ticket = await client.get("https://api.weixin.qq.com/cgi-bin/token", params={
+                            "grant_type": "client_credential",
+                            "appid": settings.WX_APP_ID,
+                            "secret": settings.WX_APP_SECRET,
+                        })
+                        ticket.raise_for_status()
+                        data = ticket.json()
+                        token = data.get("access_token")
+                        if not token:
+                            raise ValueError("WeChat access token unavailable")
+                        _wx_access_token = str(token)
+                        _wx_token_expires_at = time.monotonic() + max(60, int(data.get("expires_in", 7200)) - 300)
+            response = await client.post(
+                "https://api.weixin.qq.com/wxa/getwxacodeunlimit",
+                params={"access_token": _wx_access_token},
+                json={
+                    "scene": scene,
+                    "page": "pages/radar/radar",
+                    "check_path": os.getenv("WECHAT_MINI_QR_CHECK_PATH", "1") == "1",
+                    "env_version": "release",
+                    "width": 280,
+                },
+            )
+            response.raise_for_status()
+            if response.content.startswith(b"\x89PNG"):
+                mime = "image/png"
+            elif response.content.startswith(b"\xff\xd8"):
+                mime = "image/jpeg"
+            else:
+                raise ValueError("WeChat mini program code unavailable")
+            return f"data:{mime};base64,{base64.b64encode(response.content).decode('ascii')}"
+    except (httpx.HTTPError, ValueError, TypeError) as exc:
+        logger.warning("WeChat mini program code unavailable: %s", type(exc).__name__)
+        return None
 
 
 def _token_hash(token: str) -> str:
@@ -21,7 +76,7 @@ def _token_hash(token: str) -> str:
 
 
 def _create_challenge(connection, status: str = "pending", user_uuid: str = None):
-    token = secrets.token_urlsafe(32)
+    token = secrets.token_urlsafe(20)
     expires_at = datetime.utcnow() + timedelta(minutes=5)
     connection.execute(text("""
         INSERT INTO web_login_challenges (token_hash, status, user_uuid, expires_at)
@@ -37,13 +92,16 @@ def _create_challenge(connection, status: str = "pending", user_uuid: str = None
 
 
 @router.post("/challenges")
-def create_challenge(connection=Depends(get_db_connection)):
+async def create_challenge(connection=Depends(get_db_connection)):
     token, expires_at = _create_challenge(connection)
+    # scene 最多 32 个可见字符；20 随机字节生成 27 字符，仍有 160 位熵。
+    mini_program_qr = await _mini_program_qr(token)
     return {
         "code": 201,
         "data": {
             "challenge_token": token,
             "qr_payload": f"trashbox://web-login/{token}",
+            "mini_program_qr": mini_program_qr,
             "expires_at": expires_at.isoformat() + "Z",
         },
     }
@@ -63,7 +121,7 @@ def poll_challenge(token: str, connection=Depends(get_db_connection)):
         raise HTTPException(status_code=410, detail="Login challenge already consumed")
     access_token = issue_access_token(row.user_uuid)
     connection.execute(text("""
-        UPDATE web_login_challenges SET status = 'consumed', consumed_at = UTC_TIMESTAMP()
+        UPDATE web_login_challenges SET status = 'consumed', consumed_at = CURRENT_TIMESTAMP
         WHERE token_hash = :token_hash AND consumed_at IS NULL
     """), {"token_hash": _token_hash(token)})
     connection.commit()
@@ -74,7 +132,7 @@ def poll_challenge(token: str, connection=Depends(get_db_connection)):
 def confirm_challenge(token: str, user=Depends(get_current_user), connection=Depends(get_db_connection)):
     result = connection.execute(text("""
         UPDATE web_login_challenges SET status = 'confirmed', user_uuid = :user_uuid
-        WHERE token_hash = :token_hash AND status = 'pending' AND expires_at > UTC_TIMESTAMP()
+        WHERE token_hash = :token_hash AND status = 'pending' AND expires_at > CURRENT_TIMESTAMP
     """), {"token_hash": _token_hash(token), "user_uuid": user})
     connection.commit()
     if result.rowcount == 0:

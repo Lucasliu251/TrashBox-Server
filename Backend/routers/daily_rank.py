@@ -1,6 +1,6 @@
 # routers/daily_rank.py
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from datetime import datetime, timedelta
 from typing import List
 from pydantic import BaseModel
@@ -47,7 +47,7 @@ def get_daily_ranking(
 
     # 2. 一次性查出两天的数据
     query = text("""
-        SELECT steam_id, nickname, record_date, total_kills, total_deaths, total_mvps, total_HS, total_damage, total_rounds_played, total_wins
+        SELECT steam_id, nickname, record_date, total_kills, total_deaths, total_mvps, "total_HS", total_damage, total_rounds_played, total_wins
         FROM daily 
         WHERE record_date IN (:t_date, :p_date)
     """)
@@ -67,9 +67,11 @@ def get_daily_ranking(
     user_info_map = {}
     if steam_ids:
         # 将 set 转为 tuple 供 SQL IN 查询使用
-        ids_tuple = tuple(steam_ids)
-        user_query = text("SELECT steam_id, nickname, avatar FROM users WHERE steam_id IN :ids")
-        user_rows = connection.execute(user_query, {"ids": ids_tuple}).fetchall()
+        ids_list = list(steam_ids)
+        user_query = text(
+            "SELECT steam_id, nickname, avatar FROM users WHERE steam_id IN :ids"
+        ).bindparams(bindparam("ids", expanding=True))
+        user_rows = connection.execute(user_query, {"ids": ids_list}).fetchall()
         
         # 构建查找表
         for u_row in user_rows:

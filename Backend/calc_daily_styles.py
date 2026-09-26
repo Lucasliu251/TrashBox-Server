@@ -6,6 +6,13 @@ from database import get_db_connection
 from utils.clustering_algo import analyze_player_styles
 
 def calculate_styles_for_date(date_str):
+    """按日计算玩家风格标签并写回 daily / server_avg_stats。
+
+    @param date_str: YYYY-MM-DD
+    @returns: None
+    @changelog
+    - 2026-08-22: 全服均值 UPSERT 改为 PostgreSQL ON CONFLICT (date) (Author: KBot)
+    """
     print(f"[{datetime.now()}] 🚀 开始计算 {date_str} 的玩家风格聚类...")
     
     # --- 1. 获取数据库连接 (手动管理生成器) ---
@@ -28,7 +35,7 @@ def calculate_styles_for_date(date_str):
                 total_kills, 
                 total_deaths, 
                 total_mvps, 
-                total_HS, 
+                "total_HS",
                 total_damage, 
                 total_rounds_played, 
                 total_wins
@@ -112,26 +119,33 @@ def calculate_styles_for_date(date_str):
         df_daily = pd.DataFrame(clustering_input)
         
         # 计算平均值 (保留3位小数)
+        # 转成 Python 标量，避免 numpy.float64 被 psycopg2 当成标识符
         daily_avg = {
-            "kpr": round(df_daily['kpr'].mean(), 3),
-            "spr": round(df_daily['spr'].mean(), 3),
-            "adr": round(df_daily['adr'].mean(), 2),
-            "hsr": round(df_daily['hsr'].mean(), 3),
-            "mpr": round(df_daily['mpr'].mean(), 3),
-            "wr":  round(df_daily['wr'].mean(), 3),
-            "count": len(df_daily)
+            "kpr": float(round(df_daily['kpr'].mean(), 3)),
+            "spr": float(round(df_daily['spr'].mean(), 3)),
+            "adr": float(round(df_daily['adr'].mean(), 2)),
+            "hsr": float(round(df_daily['hsr'].mean(), 3)),
+            "mpr": float(round(df_daily['mpr'].mean(), 3)),
+            "wr":  float(round(df_daily['wr'].mean(), 3)),
+            "count": int(len(df_daily)),
         }
         
         print(f"   平均 KPR: {daily_avg['kpr']}, ADR: {daily_avg['adr']}")
 
         # 3. 存入 server_avg_stats 表 (如果当天已存在则更新)
-        # 使用 UPSERT 语法 (MySQL: ON DUPLICATE KEY UPDATE)
+        # PostgreSQL UPSERT：主键是 date
         insert_avg_sql = text("""
-            INSERT INTO server_avg_stats 
-            (date, avg_kpr, avg_spr, avg_adr, avg_hsr, avg_mpr, avg_wr, active_players)
+            INSERT INTO server_avg_stats
+            ("date", avg_kpr, avg_spr, avg_adr, avg_hsr, avg_mpr, avg_wr, active_players)
             VALUES (:date, :kpr, :spr, :adr, :hsr, :mpr, :wr, :count)
-            ON DUPLICATE KEY UPDATE
-            avg_kpr=:kpr, avg_spr=:spr, avg_adr=:adr, avg_hsr=:hsr, avg_mpr=:mpr, avg_wr=:wr, active_players=:count
+            ON CONFLICT ("date") DO UPDATE SET
+                avg_kpr = EXCLUDED.avg_kpr,
+                avg_spr = EXCLUDED.avg_spr,
+                avg_adr = EXCLUDED.avg_adr,
+                avg_hsr = EXCLUDED.avg_hsr,
+                avg_mpr = EXCLUDED.avg_mpr,
+                avg_wr = EXCLUDED.avg_wr,
+                active_players = EXCLUDED.active_players
         """)
         
         db.execute(insert_avg_sql, {

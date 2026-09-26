@@ -128,10 +128,10 @@ async def onboarding(data: UserOnboarding, connection = Depends(get_db_connectio
         sql = text("""
             INSERT INTO users (uuid, steam_id, auth_code, match_code)
             VALUES (:uuid, :steam_id, :auth_code, :match_code)
-            ON DUPLICATE KEY UPDATE
-                steam_id = VALUES(steam_id),
-                auth_code = VALUES(auth_code),
-                match_code = VALUES(match_code),
+            ON CONFLICT (uuid) DO UPDATE SET
+                steam_id = EXCLUDED.steam_id,
+                auth_code = EXCLUDED.auth_code,
+                match_code = EXCLUDED.match_code,
                 updated_at = CURRENT_TIMESTAMP
         """)
         
@@ -164,7 +164,7 @@ async def onboarding(data: UserOnboarding, connection = Depends(get_db_connectio
 async def get_my_profile(openid: str, connection = Depends(get_db_connection)):
     # 注意：实际生产中 openid 应该从 Header 的 Token 解析，现在开发阶段我们先通过参数传
     try:
-        sql = text("SELECT uuid, steam_id, avatar, nickname, canEdit, created_at FROM users WHERE uuid = :uuid")
+        sql = text('SELECT uuid, steam_id, avatar, nickname, "canEdit", created_at FROM users WHERE uuid = :uuid')
         
         result = connection.execute(sql, {"uuid": openid}).fetchone()
             
@@ -278,7 +278,7 @@ def search_users(
     sql_users = text("""
         SELECT steam_id, nickname, avatar 
         FROM users 
-        WHERE steam_id = :exact_id OR nickname LIKE :like_name
+        WHERE steam_id = :exact_id OR nickname ILIKE :like_name
         LIMIT 5
     """)
     
@@ -287,7 +287,7 @@ def search_users(
     sql_daily = text("""
         SELECT DISTINCT steam_id, nickname 
         FROM daily 
-        WHERE steam_id = :exact_id OR nickname LIKE :like_name
+        WHERE steam_id = :exact_id OR nickname ILIKE :like_name
         LIMIT 5
     """)
     

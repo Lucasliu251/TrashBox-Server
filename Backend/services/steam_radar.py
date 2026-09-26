@@ -41,6 +41,20 @@ def parse_steam_input(raw_value: str) -> Dict[str, str]:
     raise ValueError("无法识别 SteamID64、Profile URL 或 Vanity URL")
 
 
+class SteamAPIError(RuntimeError):
+    """Steam Web API 错误；消息不得包含带密钥的请求 URL。"""
+
+    def __init__(self, status_code: int | None = None):
+        self.status_code = status_code
+        if status_code == 403:
+            message = "Steam API 拒绝请求 (403)，请检查 API Key 和请求来源限制。"
+        elif status_code is not None:
+            message = f"Steam API 暂不可用 (HTTP {status_code})。"
+        else:
+            message = "Steam API 网络请求失败，请稍后重试。"
+        super().__init__(message)
+
+
 class SteamRadarClient:
     def __init__(self, api_key: str, timeout: float = 10.0, max_concurrency: int = 3):
         if not api_key:
@@ -51,13 +65,20 @@ class SteamRadarClient:
 
     async def _get(self, path: str, params: Dict[str, Any]) -> Dict[str, Any]:
         async with self._semaphore:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    f"{STEAM_API_BASE}{path}",
-                    params={"key": self.api_key, **params},
-                )
-                response.raise_for_status()
-                return response.json()
+            async with httpx.AsyncClient(timeout=self.timeout, http2=True) as client:
+                try:
+                    response = await client.get(
+                        f"{STEAM_API_BASE}{path}",
+                        params={"key": self.api_key, **params},
+                    )
+                    response.raise_for_status()
+                    return response.json()
+                except httpx.HTTPStatusError as exc:
+                    raise SteamAPIError(exc.response.status_code) from None
+                except httpx.RequestError:
+                    raise SteamAPIError() from None
+                except ValueError:
+                    raise SteamAPIError() from None
 
     async def resolve(self, raw_value: str) -> Dict[str, Any]:
         parsed = parse_steam_input(raw_value)

@@ -12,7 +12,7 @@ from config import settings
 from database import engine, get_db_connection
 from models.radar import RadarSessionCreate, RadarTargetCreate, RadarTargetUpdate, ResolveRequest
 from services.auth import get_current_user
-from services.steam_radar import SteamRadarClient, build_risk_signals, presence_from_summary
+from services.steam_radar import SteamAPIError, SteamRadarClient, build_risk_signals, presence_from_summary
 
 
 router = APIRouter(prefix="/api/v1/radar", tags=["Radar"])
@@ -72,11 +72,11 @@ def _load_targets(connection) -> List[Dict[str, Any]]:
 def _active_session(connection) -> Optional[Dict[str, Any]]:
     connection.execute(text("""
         UPDATE radar_sessions SET status = 'expired'
-        WHERE status = 'active' AND expires_at <= UTC_TIMESTAMP()
+        WHERE status = 'active' AND expires_at <= CURRENT_TIMESTAMP
     """))
     row = connection.execute(text("""
         SELECT * FROM radar_sessions
-        WHERE status = 'active' AND expires_at > UTC_TIMESTAMP()
+        WHERE status = 'active' AND expires_at > CURRENT_TIMESTAMP
         ORDER BY started_at DESC LIMIT 1
     """)).fetchone()
     if not row:
@@ -121,13 +121,18 @@ async def _perform_scan(connection, session_id: Optional[str] = None) -> Dict[st
     errors: List[str] = []
     try:
         summaries = await client.get_summaries(steam_ids)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Steam presence query failed: {exc}")
+    except SteamAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from None
+    except Exception:
+        raise HTTPException(status_code=502, detail="Steam Presence 暂不可用。") from None
     try:
         bans = await client.get_bans(steam_ids)
-    except Exception as exc:
+    except SteamAPIError as exc:
         bans = {}
-        errors.append(f"ban data unavailable: {exc}")
+        errors.append(str(exc))
+    except Exception:
+        bans = {}
+        errors.append("Steam ban data 暂不可用。")
 
     now = datetime.now(timezone.utc)
     stale_targets = []
@@ -159,7 +164,7 @@ async def _perform_scan(connection, session_id: Optional[str] = None) -> Dict[st
             :target_id, :session_id, :status, :personaname, :avatar_url, :profile_url,
             :privacy_state, :persona_state, :game_id, :game_extra_info,
             :game_server_ip, :lobby_steam_id, :group_key, :account_created_at,
-            :cs2_playtime_minutes, :vac_banned, :game_ban_count, :risk_signals, UTC_TIMESTAMP()
+            :cs2_playtime_minutes, :vac_banned, :game_ban_count, :risk_signals, CURRENT_TIMESTAMP
         )
     """)
     for target in targets:
@@ -193,7 +198,7 @@ async def _perform_scan(connection, session_id: Optional[str] = None) -> Dict[st
     if session_id:
         connection.execute(text("""
             UPDATE radar_sessions
-            SET last_tick_at = UTC_TIMESTAMP(), error_summary = :error_summary
+            SET last_tick_at = CURRENT_TIMESTAMP, error_summary = :error_summary
             WHERE id = :session_id
         """), {"session_id": session_id, "error_summary": "; ".join(errors)[:500] or None})
     return {"observed": len(targets), "errors": errors, "observed_at": now.isoformat()}
@@ -232,8 +237,10 @@ async def resolve_target(data: ResolveRequest, _user=Depends(get_current_user)):
         return {"code": 200, "data": await SteamRadarClient(settings.STEAM_API_KEY).resolve(data.value)}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Steam lookup failed: {exc}")
+    except SteamAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from None
+    except Exception:
+        raise HTTPException(status_code=502, detail="Steam 用户查询暂不可用。") from None
 
 
 @router.get("/targets")
@@ -328,7 +335,7 @@ async def start_session(data: RadarSessionCreate, user=Depends(get_current_user)
     expires_at = datetime.utcnow() + timedelta(seconds=duration)
     connection.execute(text("""
         INSERT INTO radar_sessions (id, mode, status, started_by, started_at, expires_at)
-        VALUES (:id, 'continuous', 'active', :started_by, UTC_TIMESTAMP(), :expires_at)
+        VALUES (:id, 'continuous', 'active', :started_by, CURRENT_TIMESTAMP, :expires_at)
     """), {"id": session_id, "started_by": user, "expires_at": expires_at})
     connection.commit()
     _active_task = asyncio.create_task(_run_session(session_id))

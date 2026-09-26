@@ -41,7 +41,7 @@ def get_player_history(
     start_date = end_date - timedelta(days=days + 1) # 多取一天算增量
 
     query = text("""
-        SELECT record_date, nickname, total_kills, total_deaths, total_mvps, total_HS, total_damage, total_wins, total_rounds_played, total_time_played, total_money_earned, style_tag
+        SELECT record_date, nickname, total_kills, total_deaths, total_mvps, "total_HS", total_damage, total_wins, total_rounds_played, total_time_played, total_money_earned, style_tag
         FROM daily
         WHERE steam_id = :sid AND record_date >= :s_date
         ORDER BY record_date ASC
@@ -57,7 +57,7 @@ def get_player_history(
     sql_avg = text("""
         SELECT avg_kpr, avg_spr, avg_adr, avg_hsr, avg_mpr, avg_wr 
         FROM server_avg_stats 
-        ORDER BY date DESC 
+        ORDER BY "date" DESC
         LIMIT 1
     """)
     row_avg = connection.execute(sql_avg).fetchone()

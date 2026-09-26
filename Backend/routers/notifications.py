@@ -13,11 +13,18 @@ class SubscribeReq(BaseModel):
 
 @router.post("/subscribe")
 def user_subscribe(req: SubscribeReq, connection=Depends(get_db_connection)):
+    """记录订阅次数；同一 openid+模板冲突则累加次数。
+
+    @changelog
+    - 2026-08-22: ON DUPLICATE KEY 改为 ON CONFLICT (openid, template_id) (Author: KBot)
+    """
     # 记录用户的订阅，remaining_count + 1
     sql = text("""
         INSERT INTO subscriptions (openid, template_id, remaining_count)
         VALUES (:oid, :tid, 1)
-        ON DUPLICATE KEY UPDATE remaining_count = remaining_count + 1
+        ON CONFLICT (openid, template_id) DO UPDATE
+        SET remaining_count = subscriptions.remaining_count + 1,
+            updated_at = CURRENT_TIMESTAMP
     """)
     connection.execute(sql, {"oid": req.openid, "tid": req.template_id})
     connection.commit()

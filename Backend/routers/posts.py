@@ -39,6 +39,11 @@ def clean_html(raw_html):
 # 1. 发布文章接口
 @router.post("/")
 async def create_post(post: PostCreate, connection=Depends(get_db_connection)):
+    """发布帖子并返回新 id。
+
+    @changelog
+    - 2026-08-22: lastrowid 改为 RETURNING id，适配 PostgreSQL (Author: KBot)
+    """
     # 简单校验
     if not post.title or not post.content:
         return {"code": 400, "message": "标题或内容不能为空"}
@@ -48,8 +53,9 @@ async def create_post(post: PostCreate, connection=Depends(get_db_connection)):
 
     try:
         sql = text("""
-            INSERT INTO posts (uuid, title, content, tag, created_at) 
+            INSERT INTO posts (uuid, title, content, tag, created_at)
             VALUES (:uuid, :title, :content, :tag, NOW())
+            RETURNING id
         """)
         
         result = connection.execute(sql, {
@@ -60,7 +66,7 @@ async def create_post(post: PostCreate, connection=Depends(get_db_connection)):
         })
         connection.commit() 
         
-        post_id = result.lastrowid
+        post_id = result.scalar()
             
         return {"code": 200, "message": "发布成功", "post_id": post_id}
     except Exception as e:
